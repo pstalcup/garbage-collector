@@ -369,6 +369,10 @@ function gregariousCount(): {
 
   const expectedGregariousFights = gregariousFightsPerCharge.slice(gregariousCharges);
 
+  print(
+    `Valuing gregs with ${expectedGregariousFights} for the expected greg fights and ${marginalGregariousFights} for the marginal greg fights`
+  );
+
   return {
     expectedGregariousFights,
     marginalGregariousFights,
@@ -377,6 +381,7 @@ function gregariousCount(): {
 
 function copiers(): MenuItem<Note>[] {
   const embezzlerDifferential = 25000 - MPA;
+  print(`Using greg embezzler differential of ${embezzlerDifferential}`);
   const { expectedGregariousFights, marginalGregariousFights } = gregariousCount();
   const extros =
     myInebriety() > inebrietyLimit()
