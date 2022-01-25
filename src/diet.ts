@@ -376,7 +376,8 @@ function gregariousCount(): {
 }
 
 function copiers(): MenuItem<Note>[] {
-  const embezzlerDifferential = 25000 - MPA;
+  const embezzlerDifferential =
+    (have($familiar`robortender`) ? 25000 : have($familiar`hobo monkey`) ? 15000 : 12500) - MPA;
   const { expectedGregariousFights, marginalGregariousFights } = gregariousCount();
   const extros =
     myInebriety() > inebrietyLimit()
