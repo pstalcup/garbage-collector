@@ -1,8 +1,11 @@
 import {
+  availableAmount,
   availableChoiceOptions,
   buy,
   changeMcd,
   cliExecute,
+  closetAmount,
+  displayAmount,
   equip,
   familiarEquippedEquipment,
   getCampground,
@@ -30,6 +33,8 @@ import {
   retrieveItem,
   runChoice,
   scrapPockets,
+  takeCloset,
+  takeDisplay,
   toInt,
   toItem,
   toSlot,
@@ -57,6 +62,7 @@ import {
   ensureEffect,
   get,
   getModifier,
+  getSaleValue,
   have,
   property,
   SongBoom,
@@ -71,7 +77,6 @@ import {
   coinmasterPrice,
   getChoiceOption,
   globalOptions,
-  HIGHLIGHT,
   leprechaunMultiplier,
   logMessage,
   tryFeast,
@@ -81,7 +86,6 @@ import { embezzlerCount, estimatedTurns } from "./embezzler";
 import { refreshLatte } from "./outfit";
 import { digitizedMonstersRemaining } from "./wanderer";
 import { doingExtrovermectin } from "./extrovermectin";
-import { garboAverageValue, garboValue } from "./session";
 
 export function dailySetup(): void {
   voterSetup();
@@ -107,8 +111,26 @@ export function dailySetup(): void {
   breakfastCounter();
 
   retrieveItem($item`Half a Purse`);
-  putCloset(itemAmount($item`hobo nickel`), $item`hobo nickel`);
-  putCloset(itemAmount($item`sand dollar`), $item`sand dollar`);
+
+  if (have($item`lucky gold ring`)) {
+    const farmNickels =
+      !have($familiar`Hobo Monkey`) &&
+      itemAmount($item`hobo nickel`) +
+        displayAmount($item`hobo nickel`) +
+        closetAmount($item`hobo nickel`) <
+        1001;
+
+    if (!farmNickels || have($familiar`Robortender`)) {
+      // if we have a robortender or a hobo monkey, there is no reason to farm nickels
+      putCloset(itemAmount($item`hobo nickel`), $item`hobo nickel`);
+    } else if (itemAmount($item`hobo nickel`) === 0 && closetAmount($item`hobo nickel`) > 0) {
+      takeCloset(1, $item`hobo nickel`);
+    } else if (itemAmount($item`hobo nickel`) === 0 && displayAmount($item`hobo nickel`) > 0) {
+      takeDisplay(1, $item`hobo nickel`);
+    }
+    putCloset(itemAmount($item`sand dollar`), $item`sand dollar`);
+  }
+
   if (myInebriety() > inebrietyLimit()) return;
   retrieveItem($item`seal tooth`);
   retrieveItem($item`The Jokester's gun`);
@@ -127,15 +149,15 @@ function voterSetup(): void {
   const voterValueTable = [
     {
       monster: $monster`terrible mutant`,
-      value: garboValue($item`glob of undifferentiated tissue`) + 10,
+      value: getSaleValue($item`glob of undifferentiated tissue`) + 10,
     },
     {
       monster: $monster`angry ghost`,
-      value: garboValue($item`ghostly ectoplasm`) * 1.11,
+      value: getSaleValue($item`ghostly ectoplasm`) * 1.11,
     },
     {
       monster: $monster`government bureaucrat`,
-      value: garboValue($item`absentee voter ballot`) * 0.05 + 75 * 0.25 + 50,
+      value: getSaleValue($item`absentee voter ballot`) * 0.05 + 75 * 0.25 + 50,
     },
     {
       monster: $monster`annoyed snake`,
@@ -222,7 +244,7 @@ function prepFamiliars(): void {
       if (get("_roboDrinks").includes(drink.name)) continue;
       useFamiliar($familiar`Robortender`);
       if (itemAmount(drink) === 0) retrieveItem(1, drink);
-      print(`Feeding robortender ${drink}.`, HIGHLIGHT);
+      print(`Feeding robortender ${drink}.`, "blue");
       visitUrl(`inventory.php?action=robooze&which=1&whichitem=${toInt(drink)}`);
     }
   }
@@ -361,7 +383,7 @@ function volcanoDailies(): void {
   if (!get("_volcanoItemRedeemed")) checkVolcanoQuest();
 
   if (!get("_infernoDiscoVisited")) {
-    print("Getting my free volcoino!", HIGHLIGHT);
+    print("Getting my free volcoino!", "blue");
     $items`smooth velvet pocket square, smooth velvet socks, smooth velvet hat, smooth velvet shirt, smooth velvet hanky, smooth velvet pants`.forEach(
       (discoEquip) => {
         retrieveItem(discoEquip);
@@ -384,9 +406,9 @@ function volcanoDailies(): void {
   }
 }
 function checkVolcanoQuest() {
-  print("Checking volcano quest", HIGHLIGHT);
+  print("Checking volcano quest", "blue");
   visitUrl("place.php?whichplace=airport_hot&action=airport4_questhub");
-  const volcoinoValue = garboValue($item`Volcoino`);
+  const volcoinoValue = (1 / 3) * getSaleValue($item`one-day ticket to That 70s Volcano`);
   const volcanoProperties = new Map<Item, number>([
     [property.getItem("_volcanoItem1") || $item`none`, get("_volcanoItemCount1")],
     [property.getItem("_volcanoItem2") || $item`none`, get("_volcanoItemCount2")],
@@ -449,7 +471,7 @@ function checkVolcanoQuest() {
 function cheat(): void {
   if (have($item`Deck of Every Card`)) {
     [
-      garboValue($item`gift card`) >= garboValue($item`1952 Mickey Mantle card`)
+      getSaleValue($item`gift card`) >= getSaleValue($item`1952 Mickey Mantle card`)
         ? "Gift Card"
         : "1952 Mickey Mantle",
       "Island",
@@ -474,7 +496,7 @@ function tomeSummons(): void {
     let best = $item`none`;
     for (let itemId = 5224; itemId <= 5283; itemId++) {
       const current = Item.get(`[${itemId}]`);
-      if (garboValue(current) > garboValue(best)) {
+      if (getSaleValue(current) > getSaleValue(best)) {
         best = current;
       }
     }
@@ -487,8 +509,8 @@ function tomeSummons(): void {
 function extrude(): void {
   if (SourceTerminal.have()) {
     const extrudeConsumables = $items`browser cookie, hacked gibson`;
-    const bestExtrude = extrudeConsumables.sort((a, b) => garboValue(b) - garboValue(a))[0];
-    if (garboValue(bestExtrude) < garboValue($item`Source essence`) * 10) {
+    const bestExtrude = extrudeConsumables.sort((a, b) => getSaleValue(b) - getSaleValue(a))[0];
+    if (getSaleValue(bestExtrude) < getSaleValue($item`Source essence`) * 10) {
       return;
     }
 
@@ -531,7 +553,7 @@ function internetMemeShop(): void {
   };
 
   for (const [property, item] of Object.entries(internetMemeShopProperties)) {
-    if (!get<boolean>(property) && baconValue * coinmasterPrice(item) < garboValue(item)) {
+    if (!get<boolean>(property) && baconValue * coinmasterPrice(item) < getSaleValue(item)) {
       retrieveItem($item`BACON`, coinmasterPrice(item));
       buy($coinmaster`Internet Meme Shop`, 1, item);
     }
@@ -541,9 +563,9 @@ function internetMemeShop(): void {
 const teas = $items`cuppa Activi tea, cuppa Alacri tea, cuppa Boo tea, cuppa Chari tea, cuppa Craft tea, cuppa Cruel tea, cuppa Dexteri tea, cuppa Feroci tea, cuppa Flamibili tea, cuppa Flexibili tea, cuppa Frost tea, cuppa Gill tea, cuppa Impregnabili tea, cuppa Improprie tea, cuppa Insani tea, cuppa Irritabili tea, cuppa Loyal tea, cuppa Mana tea, cuppa Mediocri tea, cuppa Monstrosi tea, cuppa Morbidi tea, cuppa Nas tea, cuppa Net tea, cuppa Neuroplastici tea, cuppa Obscuri tea, cuppa Physicali tea, cuppa Proprie tea, cuppa Royal tea, cuppa Serendipi tea, cuppa Sobrie tea, cuppa Toast tea, cuppa Twen tea, cuppa Uncertain tea, cuppa Vitali tea, cuppa Voraci tea, cuppa Wit tea, cuppa Yet tea`;
 function pickTea(): void {
   if (!getCampground()["potted tea tree"] || get("_pottedTeaTreeUsed")) return;
-  const bestTea = teas.sort((a, b) => garboValue(b) - garboValue(a))[0];
-  const shakeVal = 3 * garboAverageValue(...teas);
-  const teaAction = shakeVal > garboValue(bestTea) ? "shake" : bestTea.name;
+  const bestTea = teas.sort((a, b) => getSaleValue(b) - getSaleValue(a))[0];
+  const shakeVal = 3 * getSaleValue(...teas);
+  const teaAction = shakeVal > getSaleValue(bestTea) ? "shake" : bestTea.name;
   cliExecute(`teatree ${teaAction}`);
 }
 
@@ -632,7 +654,7 @@ function pickCargoPocket(): void {
     }
     if (pocket in items) {
       value += Object.entries(pocketItems(pocket))
-        .map(([item, count]) => garboValue(toItem(item)) * count)
+        .map(([item, count]) => getSaleValue(toItem(item)) * count)
         .reduce((prev, cur) => prev + cur, 0);
     }
     if (pocket in meats) {
@@ -665,6 +687,9 @@ function comb(): void {
   cliExecute(`combo ${combs}`);
 }
 
+/**
+ * Pick up any muffins you
+ */
 export function breakfastCounter() {
   visitUrl("place.php?whichplace=monorail&action=monorail_downtown");
 
