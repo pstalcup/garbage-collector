@@ -77,7 +77,9 @@ const MPA = get("valueOfAdventure");
 print(`Using adventure value ${MPA}.`, HIGHLIGHT);
 
 const Mayo = MayoClinic.Mayo;
-type Note = PotionTier | null;
+type ReservedDietTarget = "yachtzee";
+type Note = PotionTier | ReservedDietTarget | null;
+export const reservedDiet: { menuItem: MenuItem<Note>; consume: () => void }[] = [];
 
 function eatSafe(qty: number, item: Item) {
   if (have($item`Universal Seasoning`) && !get("_universalSeasoningUsed")) {
@@ -409,6 +411,19 @@ function copiers(): MenuItem<Note>[] {
   return [...extros];
 }
 
+function yachtzee(): MenuItem<Note>[] {
+  if (realmAvailable("sleaze") && have($item`fishy pipe`)) {
+    return [
+      new MenuItem<Note>($item`stench jelly`, {
+        additionalValue: 40000,
+        maximum: 9,
+        data: "yachtzee",
+      }),
+    ];
+  }
+  return [];
+}
+
 function countCopies(diet: Diet<Note>): number {
   // this only counts the copies not yet realized
   // any copies already realized will be properly counted by embezzlerCount
@@ -514,6 +529,7 @@ export function potionMenu(
   return [
     ...baseMenu,
     ...copiers(),
+    ...yachtzee(),
 
     // FOOD POTIONS
     ...potion($item`jumping horseradish`),
@@ -814,6 +830,18 @@ export function consumeDiet(diet: Diet<Note>, name: DietName): void {
           $item`Rethinking Candy`,
           (countToConsume: number, menuItem: MenuItem<Note>) =>
             synthesize(countToConsume, menuItem.effect ?? $effect`Synthesis: Greed`),
+        ],
+        [
+          $item`Stench Jelly`,
+          (countToConsume: number, menuItem: MenuItem<Note>) =>
+            reservedDiet.concat(
+              new Array(countToConsume).map(() => {
+                return {
+                  menuItem,
+                  consume: () => consumeSafe(1, menuItem.item, menuItem.additionalValue),
+                };
+              })
+            ),
         ],
         ...mayoActions,
         ...speakeasyDrinks,

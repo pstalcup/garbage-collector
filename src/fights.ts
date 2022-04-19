@@ -116,7 +116,7 @@ import {
   setChoice,
 } from "./lib";
 import { freeFightMood, meatMood } from "./mood";
-import { freeFightOutfit, meatOutfit, tryFillLatte, waterBreathingEquipment } from "./outfit";
+import { freeFightOutfit, meatOutfit, tryFillLatte } from "./outfit";
 import { bathroomFinance, potionSetup } from "./potions";
 import {
   embezzlerCount,
@@ -136,6 +136,7 @@ import {
 } from "./extrovermectin";
 import { magnifyingGlass } from "./dropsgear";
 import { garboValue } from "./session";
+import { yachtzee } from "./underwater";
 
 const firstChainMacro = () =>
   Macro.if_(
@@ -2193,58 +2194,4 @@ export function estimatedTentacles(): number {
     const avail = source.tentacle ? source.available() : 0;
     return typeof avail === "number" ? avail : toInt(avail);
   });
-}
-
-function yachtzee(): void {
-  if (!realmAvailable("sleaze") || !have($effect`Fishy`)) return;
-
-  for (const { available, success } of [
-    {
-      available: have($item`Clara's bell`) && !globalOptions.clarasBellClaimed,
-      success: () => {
-        globalOptions.clarasBellClaimed = true;
-        if (use($item`Clara's bell`)) return true;
-        return false;
-      },
-    },
-    {
-      available: have($item`Eight Days a Week Pill Keeper`) && !get("_freePillKeeperUsed"),
-      success: () => {
-        if (cliExecute("pillkeeper noncombat") && get("_freePillKeeperUsed")) {
-          // Defense against mis-set counters
-          set("_freePillKeeperUsed", true);
-          return true;
-        }
-        return false;
-      },
-    },
-  ]) {
-    if (available) {
-      useFamiliar(
-        Familiar.all()
-          .filter(
-            (familiar) =>
-              have(familiar) && familiar.underwater && familiar !== $familiar`Robortender`
-          )
-          .sort((a, b) => findLeprechaunMultiplier(b) - findLeprechaunMultiplier(a))[0] ??
-          $familiar`none`
-      );
-
-      const underwaterBreathingGear = waterBreathingEquipment.find((item) => have(item));
-      if (!underwaterBreathingGear) return;
-      const equippedOutfit = new Requirement(["meat", "-tie"], {
-        forceEquip: [underwaterBreathingGear],
-      }).maximize();
-      if (haveEquipped($item`The Crown of Ed the Undying`)) cliExecute("edpiece fish");
-
-      if (!equippedOutfit || !success()) return;
-
-      setChoice(918, 2);
-      adventureMacroAuto($location`The Sunken Party Yacht`, Macro.abort());
-      if (get("lastEncounter") === "Yacht, See?") {
-        adventureMacroAuto($location`The Sunken Party Yacht`, Macro.abort());
-      }
-      return;
-    }
-  }
 }

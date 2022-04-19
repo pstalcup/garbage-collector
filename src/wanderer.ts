@@ -7,6 +7,7 @@ import {
   $locations,
   $skill,
   clamp,
+  Counter,
   get,
   Guzzlr,
   have,
@@ -345,3 +346,13 @@ const unsupportedChoices = new Map<Location, { [choice: number]: number | string
     },
   ],
 ]);
+
+export function wanderersInRange(turns: number): number {
+  return [
+    (Counter.get("Romantic Monster Window end") > turns &&
+      Counter.get("Romantic Monster Window begin") < turns) ||
+      Counter.get("Romantic Monster Window end") < turns,
+    Counter.get("Digitize Monster") < turns,
+    Counter.get("Enamorang") < turns,
+  ].filter((c) => c).length;
+}

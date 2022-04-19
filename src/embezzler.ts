@@ -63,6 +63,7 @@ import {
   WISH_VALUE,
 } from "./lib";
 import { familiarWaterBreathingEquipment, waterBreathingEquipment } from "./outfit";
+import { checkUnderwater } from "./underwater";
 import { determineDraggableZoneAndEnsureAccess, DraggableFight } from "./wanderer";
 
 const embezzler = $monster`Knob Goblin Embezzler`;
@@ -191,33 +192,6 @@ export class EmbezzlerFight {
     }
     return suggestion ?? $location`Noob Cave`;
   }
-}
-
-function checkUnderwater() {
-  // first check to see if underwater even makes sense
-  if (
-    myLevel() >= 11 &&
-    !(get("_envyfishEggUsed") || have($item`envyfish egg`)) &&
-    (get("_garbo_weightChain", false) || !have($familiar`Pocket Professor`)) &&
-    (booleanModifier("Adventure Underwater") ||
-      waterBreathingEquipment.some((item) => have(item))) &&
-    (booleanModifier("Underwater Familiar") ||
-      familiarWaterBreathingEquipment.some((item) => have(item))) &&
-    (have($effect`Fishy`) || (have($item`fishy pipe`) && !get("_fishyPipeUsed")))
-  ) {
-    // then check if the underwater copy makes sense
-    if (mallPrice($item`pulled green taffy`) < 10000 && retrieveItem($item`pulled green taffy`)) {
-      // unlock the sea
-      if (get("questS01OldGuy") === "unstarted") {
-        visitUrl("place.php?whichplace=sea_oldman&action=oldman_oldman");
-      }
-      if (!have($effect`Fishy`) && !get("_fishyPipeUsed")) use($item`fishy pipe`);
-
-      return have($effect`Fishy`);
-    }
-  }
-
-  return false;
 }
 
 function checkFax(): boolean {
