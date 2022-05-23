@@ -8782,7 +8782,7 @@ function _arrayWithHoles(arr) {
 
 
 function BooleanInput(props) {
-  var _useState = (0,react.useState)(props.value === true),
+  var _useState = (0,react.useState)(props.value === true || props.value === "true"),
       _useState2 = _slicedToArray(_useState, 2),
       value = _useState2[0],
       setValue = _useState2[1];
@@ -8792,7 +8792,7 @@ function BooleanInput(props) {
   }, /*#__PURE__*/react.createElement("input", {
     type: "hidden",
     name: props.name,
-    value: value
+    value: value.toString()
   }), /*#__PURE__*/react.createElement("div", {
     className: "toggle-track",
     onClick: function onClick() {
