@@ -195,7 +195,7 @@ export function maxBy<T>(array: T[], key: (t: T) => number): T {
     .reduce((prev, curr) => (prev.value < curr.value ? curr : prev)).t;
 }
 
-type WanderingSource = {
+interface WanderingSource {
   name: string;
   item: Item;
   max: number;
