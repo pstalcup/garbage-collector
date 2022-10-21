@@ -5,7 +5,7 @@ import {
   Location,
   toMonster,
 } from "kolmafia";
-import { sum } from "libram";
+import { $skill, get, have, SourceTerminal, sum } from "libram";
 import { freeFightFamiliarData } from "../familiar/freeFightFamiliar";
 import { garboValue } from "../session";
 import {
@@ -25,13 +25,16 @@ function averageYrValue(location: Location) {
     .map((m) => toMonster(m))
     .filter((m) => !badAttributes.some((s) => m.attributes.includes(s)) && rates[m.name] > 0);
 
+  const duplicate = SourceTerminal.have() && SourceTerminal.duplicateUsesRemaining() > 0 ? 2 : 1;
+
   if (monsters.length === 0) {
     return 0;
   } else {
     return (
       sum(monsters, (m) => {
+        const multiplier = m.copyable ? duplicate : 1;
         const items = itemDropsArray(m).filter((drop) => drop.type === "");
-        return sum(items, (drop) => garboValue(drop.drop, true));
+        return multiplier * sum(items, (drop) => garboValue(drop.drop, true));
       }) / monsters.length
     );
   }
