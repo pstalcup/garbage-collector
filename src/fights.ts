@@ -103,6 +103,7 @@ import {
   have,
   maxBy,
   property,
+  realmAvailable,
   Requirement,
   Robortender,
   set,
@@ -181,7 +182,6 @@ import { bathroomFinance, potionSetup } from "./potions";
 import { garboValue } from "./value";
 import { DraggableFight, WanderOptions } from "./wanderer";
 import { wanderer } from "./garboWanderer";
-import { realmAvailable } from "./wanderer/lib";
 
 const firstChainMacro = () =>
   Macro.if_(
