@@ -179,7 +179,7 @@ import {
 } from "./outfit";
 import postCombatActions from "./post";
 import { bathroomFinance, potionSetup } from "./potions";
-import { garboValue } from "./value";
+import { garboValue } from "./garboValue";
 import { DraggableFight, WanderOptions } from "./wanderer";
 import { wanderer } from "./garboWanderer";
 
