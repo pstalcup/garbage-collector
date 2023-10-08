@@ -176,7 +176,7 @@ import {
   tryFillLatte,
   waterBreathingEquipment,
 } from "./outfit";
-import postCombatActions from "./post";
+import postCombatActions from "./tasks/post";
 import { bathroomFinance, potionSetup } from "./potions";
 import { garboValue } from "./garboValue";
 import { WanderDetails } from "./libgarbo";

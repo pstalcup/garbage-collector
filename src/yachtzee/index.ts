@@ -32,7 +32,7 @@ import { embezzlerCount } from "../embezzler";
 import { doSausage, freeRunFights } from "../fights";
 import { baseMeat, eventLog, propertyManager, safeRestore } from "../lib";
 import { meatMood } from "../mood";
-import postCombatActions from "../post";
+import postCombatActions from "../tasks/post";
 import { potionSetup } from "../potions";
 import { prepRobortender } from "../tasks/dailyFamiliars";
 import { yachtzeePotionSetup } from "./buffs";

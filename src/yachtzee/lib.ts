@@ -24,7 +24,7 @@ import { embezzlerSources } from "../embezzler";
 import { freeFightFamiliar } from "../familiar";
 import { freeRunConstraints, ltbRun, propertyManager } from "../lib";
 import { freeFightOutfit, toSpec } from "../outfit";
-import postCombatActions from "../post";
+import postCombatActions from "../tasks/post";
 import { wanderer } from "../garboWanderer";
 
 const ignoredSources = [

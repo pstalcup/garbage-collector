@@ -1,11 +1,11 @@
 import { getWorkshed, haveEffect, Item, print, totalTurnsPlayed, use, visitUrl } from "kolmafia";
 import { $effect, $item, $items, AsdonMartin, DNALab, get, have, TrainSet } from "libram";
-import { dietCompleted } from "../diet";
-import { globalOptions } from "../config";
-import { potionSetupCompleted } from "../potions";
-import { estimatedGarboTurns, estimatedTurnsTomorrow } from "../turns";
+import { dietCompleted } from "../../diet";
+import { globalOptions } from "../../config";
+import { potionSetupCompleted } from "../../potions";
+import { estimatedGarboTurns, estimatedTurnsTomorrow } from "../../turns";
 import { getPrioritizedStations, grabMedicine, rotateToOptimalCycle } from "./workshed_utils";
-import { HIGHLIGHT } from "../lib";
+import { HIGHLIGHT } from "../../lib";
 type WorkshedOptions = {
   workshed: Item;
   done?: () => boolean;

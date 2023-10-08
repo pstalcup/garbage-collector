@@ -24,6 +24,7 @@ import {
   $slot,
   AutumnAton,
   CinchoDeMayo,
+  clamp,
   FloristFriar,
   get,
   getRemainingStomach,
@@ -32,10 +33,10 @@ import {
   uneffect,
   withProperty,
 } from "libram";
-import { acquire } from "../acquire";
-import { garboAdventure, Macro } from "../combat";
-import { globalOptions } from "../config";
-import { computeDiet, consumeDiet } from "../diet";
+import { acquire } from "../../acquire";
+import { garboAdventure, GarboStrategy, Macro } from "../../combat";
+import { globalOptions } from "../../config";
+import { computeDiet, consumeDiet } from "../../diet";
 import {
   bestJuneCleaverOption,
   freeRest,
@@ -44,60 +45,72 @@ import {
   safeRestore,
   setChoice,
   valueJuneCleaverOption,
-} from "../lib";
-import { teleportEffects } from "../mood";
-import { sessionSinceStart } from "../session";
-import { estimatedGarboTurns, remainingUserTurns } from "../turns";
-import { garboAverageValue, garboValue } from "../garboValue";
+} from "../../lib";
+import { teleportEffects } from "../../mood";
+import { sessionSinceStart } from "../../session";
+import { estimatedGarboTurns, remainingUserTurns } from "../../turns";
+import { garboAverageValue, garboValue } from "../../garboValue";
 import bestAutumnatonLocation from "./autumnaton";
 import handleWorkshed from "./workshed";
-import { wanderer } from "../garboWanderer";
+import { wanderer } from "../../garboWanderer";
+import { GarboTask } from "../engine";
 
-function closetStuff(): void {
-  for (const i of $items`bowling ball, funky junk key`) putCloset(itemAmount(i), i);
+const STUFF_TO_CLOSET = $items`bowling ball, funky junk key`;
+function closetStuff(): GarboTask {
+  return {
+    name: "Closet Stuff",
+    completed: () => STUFF_TO_CLOSET.every((i) => itemAmount(i) === 0),
+    do: () => STUFF_TO_CLOSET.forEach((i) => putCloset(itemAmount(i), i)),
+    spendsTurn: false,
+  };
 }
 
-function floristFriars(): void {
-  if (!FloristFriar.have() || myLocation() !== $location`Barf Mountain` || FloristFriar.isFull()) {
-    return;
-  }
-  [FloristFriar.StealingMagnolia, FloristFriar.AloeGuvnor, FloristFriar.PitcherPlant].forEach(
-    (flower) => flower.plant(),
-  );
+function floristFriars(): GarboTask {
+  return {
+    name: "Florist Plants",
+    completed: () => FloristFriar.isFull(),
+    ready: () => myLocation() === $location`Barf Mountain` && FloristFriar.have(),
+    do: () =>
+      [FloristFriar.StealingMagnolia, FloristFriar.AloeGuvnor, FloristFriar.PitcherPlant].forEach(
+        (flower) => flower.plant(),
+      ),
+    spendsTurn: false,
+  };
 }
 
-function fillPantsgivingFullness(): void {
-  if (
-    getRemainingStomach() > 0 &&
-    (!globalOptions.prefs.yachtzeechain || get("_garboYachtzeeChainCompleted", false))
-  ) {
-    consumeDiet(computeDiet().pantsgiving(), "PANTSGIVING");
-  }
+function fillPantsgivingFullness(): GarboTask {
+  return {
+    name: "Fill Pantsgiving Fullness",
+    ready: () => !globalOptions.nodiet,
+    completed: () => getRemainingStomach() <= 0,
+    do: () => consumeDiet(computeDiet().pantsgiving(), "PANTSGIVING"),
+    spendsTurn: false,
+  };
 }
 
-function fillSweatyLiver(): void {
-  if (globalOptions.prefs.yachtzeechain && !get("_garboYachtzeeChainCompleted", false)) return;
-
-  const castsWanted = 3 - get("_sweatOutSomeBoozeUsed");
-  if (castsWanted <= 0 || !have($item`designer sweatpants`)) return;
-
-  const sweatNeeded = 25 * castsWanted;
-  if (get("sweat") >= sweatNeeded) {
-    while (get("_sweatOutSomeBoozeUsed") < 3) {
-      useSkill($skill`Sweat Out Some Booze`);
-    }
-    consumeDiet(computeDiet().sweatpants(), "SWEATPANTS");
-  }
+function fillSweatyLiver(): GarboTask {
+  return {
+    name: "Fill Sweaty Liver",
+    ready: () => have($item`designer sweatpants`) && !globalOptions.nodiet,
+    completed: () => get("sweat") < 25 * clamp(3 - get("_sweatOutSomeBoozeUsed"), 0, 3),
+    do: () => {
+      while (get("_sweatOutSomeBoozeUsed") < 3) {
+        useSkill($skill`Sweat Out Some Booze`);
+      }
+      consumeDiet(computeDiet().sweatpants(), "SWEATPANTS");
+    },
+    spendsTurn: false,
+  };
 }
 
-function numberology(): void {
-  if (
-    myAdventures() > 0 &&
-    Object.keys(reverseNumberology()).includes("69") &&
-    get("_universeCalculated") < get("skillLevel144")
-  ) {
-    cliExecute("numberology 69");
-  }
+function numberology(): GarboTask {
+  return {
+    name: "Numberology",
+    ready: () => Object.keys(reverseNumberology()).includes("69"),
+    completed: () => get("_universeCalculated") >= get("skillLevel144"),
+    do: () => cliExecute("numberology 69"),
+    spendsTurn: false,
+  };
 }
 
 function updateMallPrices(): void {
@@ -105,41 +118,44 @@ function updateMallPrices(): void {
 }
 
 let juneCleaverSkipChoices: (typeof JuneCleaver.choices)[number][] | null;
-function skipJuneCleaverChoices(): void {
-  if (!juneCleaverSkipChoices) {
-    juneCleaverSkipChoices = [...JuneCleaver.choices]
-      .sort(
-        (a, b) =>
-          valueJuneCleaverOption(juneCleaverChoiceValues[a][bestJuneCleaverOption(a)]) -
-          valueJuneCleaverOption(juneCleaverChoiceValues[b][bestJuneCleaverOption(b)]),
-      )
-      .splice(0, 3);
-  }
 
+function getJuneCleaverskipChoices(): (typeof JuneCleaver.choices)[number][] {
   if (JuneCleaver.skipsRemaining() > 0) {
-    for (const choice of juneCleaverSkipChoices) {
-      setChoice(choice, 4);
+    if (!juneCleaverSkipChoices) {
+      juneCleaverSkipChoices = [...JuneCleaver.choices]
+        .sort(
+          (a, b) =>
+            valueJuneCleaverOption(juneCleaverChoiceValues[a][bestJuneCleaverOption(a)]) -
+            valueJuneCleaverOption(juneCleaverChoiceValues[b][bestJuneCleaverOption(b)]),
+        )
+        .splice(0, 3);
     }
-  } else {
-    for (const choice of juneCleaverSkipChoices) {
-      setChoice(choice, bestJuneCleaverOption(choice));
-    }
+    return [...juneCleaverSkipChoices];
   }
+  return [];
 }
-function juneCleave(): void {
-  if (get("_juneCleaverFightsLeft") <= 0 && teleportEffects.every((e) => !have(e))) {
-    equip($slot`weapon`, $item`June cleaver`);
-    skipJuneCleaverChoices();
-    withProperty("recoveryScript", "", () => {
-      garboAdventure(
-        $location`Noob Cave`,
-        Macro.abortWithMsg(`Expected June Cleaver non-combat but ended up in combat.`),
-      );
-      if (["Poetic Justice", "Lost and Found"].includes(get("lastEncounter"))) {
-        uneffect($effect`Beaten Up`);
-      }
-    });
-  }
+
+const juneCleaverChoices = () =>
+  Object.fromEntries(
+    JuneCleaver.choices.map((choice) => [
+      choice,
+      getJuneCleaverskipChoices().includes(choice) ? 4 : bestJuneCleaverOption(choice),
+    ]),
+  );
+
+function juneCleaver(): GarboTask {
+  return {
+    name: "June Cleaver",
+    ready: () => JuneCleaver.have() && teleportEffects.every((e) => !have(e)),
+    completed: () => get("_juneCleaverFightsLeft") > 0,
+    do: $location`Noob Cave`,
+    outfit: { weapon: $item`June cleaver` },
+    combat: new GarboStrategy(
+      Macro.abortWithMsg(`Expected June Cleaver non-combat but ended up in combat.`),
+    ),
+    choices: juneCleaverChoices,
+    spendsTurn: false,
+  };
 }
 
 function stillsuit() {

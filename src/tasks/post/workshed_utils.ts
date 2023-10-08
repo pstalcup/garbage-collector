@@ -8,9 +8,9 @@ import {
   visitUrl,
 } from "kolmafia";
 import { $item, $items, gameDay, get, maxBy, set, sum, TrainSet } from "libram";
-import { globalOptions } from "../config";
-import { GarboItemLists } from "../lib";
-import { garboAverageValue, garboValue } from "../garboValue";
+import { globalOptions } from "../../config";
+import { GarboItemLists } from "../../lib";
+import { garboAverageValue, garboValue } from "../../garboValue";
 
 function candyFactoryValue(): number {
   const lastCalculated = new Date(get("garbo_candyFactoryValueDate", 0));
