@@ -531,10 +531,9 @@ const BarfTurnTasks: GarboTask[] = [
       embezzlerOutfit(sober() ? {} : { offhand: $item`Drunkula's wineglass` }),
     spendsTurn: isSteve,
     combat: new GarboStrategy(() =>
-      Macro.if_(
-        $monster`Stephen Spookyraven`,
-        Macro.basicCombat(),
-      ).abortWithMsg("Expected to fight Stephen Spookyraven, but didn't!"),
+      Macro.if_($monster`Stephen Spookyraven`, Macro.basicCombat())
+        .ifInnateWanderer(Macro.basicCombat())
+        .abortWithMsg("Expected to fight Stephen Spookyraven, but didn't!"),
     ),
   },
   {

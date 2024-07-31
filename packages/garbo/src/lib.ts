@@ -36,6 +36,7 @@ import {
   myMaxhp,
   myMaxmp,
   myMp,
+  myPath,
   mySoulsauce,
   mySpleenUse,
   myThrall,
@@ -85,6 +86,7 @@ import {
   getKramcoWandererChance,
   getTodaysHolidayWanderers,
   have,
+  HeavyRains,
   JuneCleaver,
   Macro,
   maxBy,
@@ -699,15 +701,18 @@ export function lastAdventureWasWeird(
   const {
     extraEncounters,
     includeGhostDog,
-    includeHolidayWanderers,
+    includeHolidayWanderers: includeInnateWanderers,
     includeJuneCleaver,
     includeVioletFog,
   } = { ...DEFAULT_LAST_ADVENTURE_OPTIONS, ...options };
   return [
     ...extraEncounters,
     ...(includeGhostDog ? GHOST_DOG_ADVENTURES : []),
-    ...(includeHolidayWanderers
+    ...(includeInnateWanderers
       ? getTodaysHolidayWanderers().map((monster) => monster.name)
+      : []),
+    ...(includeInnateWanderers && myPath() === HeavyRains.path
+      ? HeavyRains.wanderers
       : []),
     ...(includeJuneCleaver ? JUNE_CLEAVER_ADVENTURES : []),
     ...(includeVioletFog ? VIOLET_FOG_ADVENTURES : []),
