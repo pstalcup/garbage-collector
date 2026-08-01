@@ -61,7 +61,6 @@ import {
 import { stashItems, withStash, withVIPClan } from "./clan";
 import { globalOptions, isQuickGear } from "./config";
 import { dailySetup } from "./dailies";
-import { nonOrganAdventures, runDiet } from "./diet";
 import { dailyFights, freeFights } from "./fights";
 import {
   bestJuneCleaverOption,
@@ -86,9 +85,12 @@ import {
   BarfTurnQuests,
   CockroachSetup,
   DailyFamiliarsQuest,
+  DietConsumptionQuest,
   EmbezzlerFightsQuest,
   FinishUpQuest,
+  nonOrganAdventures,
   PostQuest,
+  runDiet,
   runGarboQuests,
   runSafeGarboQuests,
   SetupTargetCopyQuest,
@@ -617,7 +619,14 @@ export function main(argString = ""): void {
           runGarboQuests([BuffExtensionQuest, PostBuffExtensionQuest]);
           if (!targetingMeat()) runGarboQuests([EmbezzlerFightsQuest]);
           try {
-            runGarboQuests([PostQuest(), ...BarfTurnQuests]);
+            // Diet leads: entries reserved for Pantsgiving fullness and
+            // sweatpants-freed liver should be eaten the moment that space
+            // appears, before we spend the turn it would have fuelled.
+            runGarboQuests([
+              DietConsumptionQuest(),
+              PostQuest(),
+              ...BarfTurnQuests,
+            ]);
             runGarboQuests([FinishUpQuest]);
           } finally {
             setAutoAttack(0);

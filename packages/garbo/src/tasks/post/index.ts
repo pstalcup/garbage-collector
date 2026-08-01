@@ -36,7 +36,6 @@ import {
   get,
   getAcquirePrice,
   getModifier,
-  getRemainingStomach,
   have,
   JuneCleaver,
   Leprecondo,
@@ -49,7 +48,6 @@ import {
 import { Macro } from "../../combat";
 import { GarboStrategy } from "../../combatStrategy";
 import { globalOptions } from "../../config";
-import { computeDiet, consumeDiet } from "../../diet";
 import {
   bestJuneCleaverOption,
   freeRest,
@@ -115,25 +113,16 @@ function floristFriars(): GarboPostTask {
   };
 }
 
-function fillPantsgivingFullness(): GarboPostTask {
+/**
+ * Free up liver with the sweatpants. The booze that goes into the space this
+ * makes is planned as part of the day's diet and eaten by DietConsumptionQuest,
+ * which sits ahead of this quest in the run so it picks the freed liver up on
+ * the very next pass.
+ * @returns the task
+ */
+function sweatOutBooze(): GarboPostTask {
   return {
-    name: "Fill Pantsgiving/Toilet Fullness",
-    ready: () =>
-      !globalOptions.nodiet &&
-      sum($slots.all(), (slot) =>
-        getModifier("Stomach Capacity", equippedItem(slot)),
-      ) <= 0,
-    completed: () => getRemainingStomach() <= 0,
-    do: () => consumeDiet(computeDiet().pantsgiving(), "PANTSGIVING"),
-    available: () =>
-      have($item`Pantsgiving`) ||
-      $item`Pork Elf toilet`.name in getCampground(),
-  };
-}
-
-function fillSweatyLiver(): GarboPostTask {
-  return {
-    name: "Fill Sweaty Liver",
+    name: "Sweat Out Some Booze",
     ready: () =>
       !globalOptions.nodiet &&
       DesignerSweatpants.canUseSkill($skill`Sweat Out Some Booze`) &&
@@ -155,7 +144,6 @@ function fillSweatyLiver(): GarboPostTask {
       ) {
         DesignerSweatpants.useSkill($skill`Sweat Out Some Booze`);
       }
-      consumeDiet(computeDiet().sweatpants(), "SWEATPANTS");
     },
     available: () =>
       !globalOptions.nodiet &&
@@ -445,8 +433,7 @@ export function PostQuest(completed?: () => boolean): Quest<GarboTask> {
       floristFriars(),
       numberology(),
       juneCleaver(),
-      fillPantsgivingFullness(),
-      fillSweatyLiver(),
+      sweatOutBooze(),
       funGuySpores(),
       eightBitFatLoot(),
       refillCinch(),

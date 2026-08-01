@@ -94,7 +94,6 @@ import {
 } from "../outfit";
 import { estimatedGarboTurns, wanderingCopytargetsRemaining } from "../turns";
 import { deliverThesisIfAble } from "../fights";
-import { computeDiet, consumeDiet } from "../diet";
 
 import { AlternateTask, GarboTask } from "./engine";
 import { trackMarginalMpa } from "../session";
@@ -315,7 +314,6 @@ const TurnGenTasks: GarboTask[] = [
       ) {
         DesignerSweatpants.useSkill($skill`Sweat Out Some Booze`);
       }
-      consumeDiet(computeDiet().sweatpants(), "SWEATPANTS");
     },
     spendsTurn: false,
   },

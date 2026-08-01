@@ -10,6 +10,13 @@ export { FreeMimicEggDonationQuest } from "./freeEggDonation";
 export { PostFreeFightQuest } from "./postFreeFight";
 export { SetupTargetCopyQuest } from "./target";
 export { DailySeaQuest } from "./dailySea";
+export {
+  DietConsumptionQuest,
+  DietPrepQuest,
+  NonOrganAdventuresQuest,
+  nonOrganAdventures,
+  runDiet,
+} from "./dietTasks";
 export { PostQuest } from "./post";
 export { runGarboQuests, runSafeGarboQuests } from "./engine";
 export { EmbezzlerFightsQuest } from "./embezzler";
