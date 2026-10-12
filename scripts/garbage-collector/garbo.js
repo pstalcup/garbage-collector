@@ -20149,7 +20149,7 @@ function checkGithubVersion() {
       // Query GitHub for latest release commit
       var gitBranches = JSON.parse(gitData);
       var releaseSHA = (_gitBranches$find = gitBranches.find(branchInfo => branchInfo.name === "release")) === null || _gitBranches$find === void 0 || (_gitBranches$find = _gitBranches$find.commit) === null || _gitBranches$find === void 0 ? void 0 : _gitBranches$find.sha;
-      kolmafia.print(`Local Version: ${localSHA} (built from ${"main"}@${"392e31829dda9db84d62ca16c7d44c534dfca8ab"})`);
+      kolmafia.print(`Local Version: ${localSHA} (built from ${"main"}@${"c8b822a42fd9da63a67b4eb2fe1b71c623242494"})`);
       if (releaseSHA === localSHA) {
         kolmafia.print("Garbo is up to date!", HIGHLIGHT);
       } else if (releaseSHA === undefined) {
@@ -24485,22 +24485,35 @@ function potionMenu(baseMenu, targets, turns) {
  * since every later iteration would plan the same diet again.
  */
 function planBalancedDiet(baseMenu, dietPlanner) {
+  var start = Date.now();
+  var passes = 0;
+  var timedPlanner = menu => {
+    var passStart = Date.now();
+    var diet = dietPlanner(menu);
+    passes++;
+    kolmafia.print(`Diet pass ${passes} took ${Date.now() - passStart}ms.`);
+    return diet;
+  };
+  var finish = diet => {
+    kolmafia.print(`Diet planned in ${Date.now() - start}ms over ${passes} passes.`);
+    return diet;
+  };
   var baseTargets = highMeatMonsterCount();
   var baseTurns = estimatedGarboTurns(false);
   var targets = 0;
-  var adventures = dietPlanner(baseMenu).expectedAdventures();
+  var adventures = timedPlanner(baseMenu).expectedAdventures();
   for (var iterations = 5; iterations > 0; iterations--) {
     kolmafia.print(`Calculating diet, please wait${".....".slice(0, iterations)}`, HIGHLIGHT);
-    var balancingDiet = dietPlanner(potionMenu(baseMenu, baseTargets + targets, baseTurns + adventures));
+    var balancingDiet = timedPlanner(potionMenu(baseMenu, baseTargets + targets, baseTurns + adventures));
     var nextTargets = countCopies(balancingDiet);
     var nextAdventures = balancingDiet.expectedAdventures();
     if (nextTargets === targets && nextAdventures === adventures) {
-      return balancingDiet;
+      return finish(balancingDiet);
     }
     targets = nextTargets;
     adventures = nextAdventures;
   }
-  return dietPlanner(potionMenu(baseMenu, baseTargets + targets, baseTurns + adventures));
+  return finish(timedPlanner(potionMenu(baseMenu, baseTargets + targets, baseTurns + adventures)));
 }
 
 /**
@@ -24606,11 +24619,92 @@ function withoutHopelessItems(menu) {
   };
   return menu.filter(menuItem => menuItem.maximum !== undefined && menuItem.maximum <= 0 || !(bestCase(menuItem) < 0));
 }
+
+/**
+ * Keep only the unlimited items that could be the planner's choice at their
+ * organ size.
+ *
+ * The knapsack solver expands each unlimited item into one copy per unit of
+ * organ space it could fill, but at any one size it only ever takes the most
+ * valuable unlimited item. Items with a maximum are left alone: the planner
+ * uses them until they run out, then falls back to the best unlimited item.
+ *
+ * Which unlimited item is best can change with a fork or mug, Refined Palate,
+ * and Gar-ish, so we keep the best item for every combination of those.
+ */
+function withoutDominatedItems(menu) {
+  var isCandidate = menuItem => menuItem.maximum === undefined && menuItem.size > 0 && ["food", "booze", "spleen item"].includes(menuItem.organ) && menuItem.additionalValue === undefined && menuItem.effect === undefined && menuItem.mayo === undefined && menuItem.data === undefined && menuItem.item.levelreq <= kolmafia.myLevel() && !crossOrganItems.has(menuItem.item) && !stomachLiverCleaners.has(menuItem.item) && !spleenCleaners.has(menuItem.item);
+  var seasoning = menu.find(menuItem => menuItem.item === $item`Special Seasoning`);
+  var forkMug = menuItem => menuItem.organ === "food" ? new MenuItem(saladFork) : menuItem.organ === "booze" ? new MenuItem(frostyMug) : undefined;
+  // Zero-quantity entries switch on the diet-wide effects without adding adventures
+  var palate = new MenuItem($item`toasted brie`);
+  var garish = new MenuItem($item`potion of the field gar`);
+  var scenarios = [false, true].flatMap(useForkMug => [[], [palate], [garish], [palate, garish]].map(modifiers => ({
+    useForkMug,
+    modifiers
+  })));
+  var value = (menuItem, _ref5) => {
+    var useForkMug = _ref5.useForkMug,
+      modifiers = _ref5.modifiers;
+    var helper = useForkMug ? forkMug(menuItem) : undefined;
+    var helperSets = [helper ? [helper] : []];
+    if (seasoning && menuItem.organ === "food") {
+      helperSets.push([].concat(_toConsumableArray(helperSets[0]), [seasoning]));
+    }
+    return Math.max.apply(Math, _toConsumableArray(helperSets.map(helpers => {
+      var adventures = Diet.from([[[].concat(_toConsumableArray(helpers), [menuItem]), 1]].concat(_toConsumableArray(modifiers.map(modifier => [[modifier], 0])))).expectedAdventures();
+      var helperCost = helpers.includes(seasoning) ? seasoning.price() : 0;
+      return adventures * MPA - menuItem.price() - helperCost;
+    })));
+  };
+  var groups = new Map();
+  var _iterator2 = _createForOfIteratorHelper(menu.filter(isCandidate)),
+    _step2;
+  try {
+    for (_iterator2.s(); !(_step2 = _iterator2.n()).done;) {
+      var _menuItem2 = _step2.value;
+      var key = `${_menuItem2.organ}:${_menuItem2.size}`;
+      groups.set(key, [].concat(_toConsumableArray(groups.get(key) ?? []), [_menuItem2]));
+    }
+  } catch (err) {
+    _iterator2.e(err);
+  } finally {
+    _iterator2.f();
+  }
+  var kept = new Set();
+  var _iterator3 = _createForOfIteratorHelper(groups.values()),
+    _step3;
+  try {
+    for (_iterator3.s(); !(_step3 = _iterator3.n()).done;) {
+      var group = _step3.value;
+      var _iterator4 = _createForOfIteratorHelper(scenarios),
+        _step4;
+      try {
+        var _loop2 = function _loop2() {
+          var scenario = _step4.value;
+          kept.add(maxBy(group, menuItem => value(menuItem, scenario)));
+        };
+        for (_iterator4.s(); !(_step4 = _iterator4.n()).done;) {
+          _loop2();
+        }
+      } catch (err) {
+        _iterator4.e(err);
+      } finally {
+        _iterator4.f();
+      }
+    }
+  } catch (err) {
+    _iterator3.e(err);
+  } finally {
+    _iterator3.f();
+  }
+  return menu.filter(menuItem => !isCandidate(menuItem) || kept.has(menuItem));
+}
 function computeDiet() {
   // Handle spleen manually, as the diet planner doesn't support synth. Only fill food and booze.
 
   var orEmpty = diet => diet.expectedValue(MPA, "net") < 0 ? new Diet() : diet;
-  var plan = (menu, organCapacities) => orEmpty(Diet.plan(MPA, withoutHopelessItems(menu), organCapacities));
+  var plan = (menu, organCapacities) => orEmpty(Diet.plan(MPA, withoutDominatedItems(withoutHopelessItems(menu)), organCapacities));
   var fullDietPlanner = menu => plan(menu);
   var shotglassDietPlanner = menu => plan(menu, {
     booze: 1
@@ -24638,11 +24732,11 @@ function printDiet(diet, name) {
   var targets = Math.floor(highMeatMonsterCount() + countCopies(diet));
   var adventures = Math.floor(estimatedGarboTurns(false) + diet.expectedAdventures());
   kolmafia.print(`Planning to fight ${targets} ${globalOptions.target} and run ${adventures} adventures`);
-  var _iterator2 = _createForOfIteratorHelper(diet.entries),
-    _step2;
+  var _iterator5 = _createForOfIteratorHelper(diet.entries),
+    _step5;
   try {
-    for (_iterator2.s(); !(_step2 = _iterator2.n()).done;) {
-      var dietEntry = _step2.value;
+    for (_iterator5.s(); !(_step5 = _iterator5.n()).done;) {
+      var dietEntry = _step5.value;
       if (dietEntry.quantity === 0) continue;
       var target = dietEntry.target();
       var datastr = target.data ? `(${target.data})` : "";
@@ -24653,9 +24747,9 @@ function printDiet(diet, name) {
       kolmafia.print(`${dietEntry.quantity}${maxstr} ${target}${datastr}${helpersstr} ${valuestr}`);
     }
   } catch (err) {
-    _iterator2.e(err);
+    _iterator5.e(err);
   } finally {
-    _iterator2.f();
+    _iterator5.f();
   }
   var totalValue = diet.expectedValue(MPA);
   var totalCost = diet.expectedPrice();
@@ -24739,9 +24833,9 @@ function specialItemActions() {
   }], [$item`august scepter`, () => kolmafia.useSkill($skill`Aug. 16th: Roller Coaster Day!`)]]));
 }
 function acquireSeasoningTask(diet) {
-  var seasoningCount = sum(diet.entries, _ref5 => {
-    var menuItems = _ref5.menuItems,
-      quantity = _ref5.quantity;
+  var seasoningCount = sum(diet.entries, _ref6 => {
+    var menuItems = _ref6.menuItems,
+      quantity = _ref6.quantity;
     return menuItems.some(menuItem => menuItem.item === $item`Special Seasoning`) ? quantity : 0;
   });
   return {
@@ -24764,28 +24858,28 @@ var noOrgans = () => ({
 function organEffects(menuItems) {
   var fills = noOrgans();
   var cleans = noOrgans();
-  var _iterator3 = _createForOfIteratorHelper(menuItems),
-    _step3;
+  var _iterator6 = _createForOfIteratorHelper(menuItems),
+    _step6;
   try {
-    for (_iterator3.s(); !(_step3 = _iterator3.n()).done;) {
-      var _menuItem2 = _step3.value;
-      var cleaning = stomachLiverCleaners.get(_menuItem2.item);
-      var spleenCleaned = spleenCleaners.get(_menuItem2.item);
+    for (_iterator6.s(); !(_step6 = _iterator6.n()).done;) {
+      var _menuItem3 = _step6.value;
+      var cleaning = stomachLiverCleaners.get(_menuItem3.item);
+      var spleenCleaned = spleenCleaners.get(_menuItem3.item);
       if (cleaning) {
         var _cleaning = _slicedToArray(cleaning, 2),
           fullness = _cleaning[0],
           inebriety = _cleaning[1];
         if (fullness < 0) cleans.food -= fullness;else fills.food += fullness;
         if (inebriety < 0) cleans.booze -= inebriety;else fills.booze += inebriety;
-      } else if (_menuItem2.organ && !(spleenCleaned && _menuItem2.organ === "spleen item")) {
-        fills[_menuItem2.organ] += _menuItem2.size;
+      } else if (_menuItem3.organ && !(spleenCleaned && _menuItem3.organ === "spleen item")) {
+        fills[_menuItem3.organ] += _menuItem3.size;
       }
       if (spleenCleaned) cleans["spleen item"] += spleenCleaned;
     }
   } catch (err) {
-    _iterator3.e(err);
+    _iterator6.e(err);
   } finally {
-    _iterator3.f();
+    _iterator6.f();
   }
   return {
     fills,
@@ -24805,19 +24899,19 @@ function dietEntryTask(dietEntry, countToConsume, actions) {
   return {
     name: `${countToConsume} ${dietEntry.target()}`,
     perform: () => {
-      var _iterator4 = _createForOfIteratorHelper(steps),
-        _step4;
+      var _iterator7 = _createForOfIteratorHelper(steps),
+        _step7;
       try {
-        for (_iterator4.s(); !(_step4 = _iterator4.n()).done;) {
-          var _step4$value = _step4.value,
-            _menuItem3 = _step4$value.menuItem,
-            action = _step4$value.action;
-          action(countToConsume, _menuItem3);
+        for (_iterator7.s(); !(_step7 = _iterator7.n()).done;) {
+          var _step7$value = _step7.value,
+            _menuItem4 = _step7$value.menuItem,
+            action = _step7$value.action;
+          action(countToConsume, _menuItem4);
         }
       } catch (err) {
-        _iterator4.e(err);
+        _iterator7.e(err);
       } finally {
-        _iterator4.f();
+        _iterator7.f();
       }
     }
   };
@@ -24856,11 +24950,11 @@ function dietTasks(diet) {
     var usesShotglass = shotglassAvailable && entry.dietEntry.menuItems.some(menuItem => menuItem.organ === "booze" && menuItem.size === 1);
     var fill = organ => usesShotglass && organ === "booze" ? 0 : fills[organ];
     var count = usesShotglass ? 1 : entry.remaining;
-    var _iterator5 = _createForOfIteratorHelper(ORGANS),
-      _step5;
+    var _iterator8 = _createForOfIteratorHelper(ORGANS),
+      _step8;
     try {
-      for (_iterator5.s(); !(_step5 = _iterator5.n()).done;) {
-        var organ = _step5.value;
+      for (_iterator8.s(); !(_step8 = _iterator8.n()).done;) {
+        var organ = _step8.value;
         if (fill(organ) > 0) {
           count = Math.min(count, Math.floor((capacity[organ] - used[organ]) / fill(organ)));
         }
@@ -24869,9 +24963,9 @@ function dietTasks(diet) {
         }
       }
     } catch (err) {
-      _iterator5.e(err);
+      _iterator8.e(err);
     } finally {
-      _iterator5.f();
+      _iterator8.f();
     }
     return {
       count,
@@ -24882,26 +24976,26 @@ function dietTasks(diet) {
 
   // Always schedule the highest priority entry that fits, so that space freed by
   // a cleaner goes to the entries that were waiting on it.
-  while (pending.some(_ref6 => {
-    var remaining = _ref6.remaining;
+  while (pending.some(_ref7 => {
+    var remaining = _ref7.remaining;
     return remaining > 0;
   })) {
-    var next = pending.filter(_ref7 => {
-      var remaining = _ref7.remaining;
+    var next = pending.filter(_ref8 => {
+      var remaining = _ref8.remaining;
       return remaining > 0;
     }).map(entry => _objectSpread2({
       entry
-    }, fit(entry))).find(_ref8 => {
-      var count = _ref8.count;
+    }, fit(entry))).find(_ref9 => {
+      var count = _ref9.count;
       return count > 0;
     });
     if (!next) {
-      var stuck = pending.filter(_ref9 => {
-        var remaining = _ref9.remaining;
+      var stuck = pending.filter(_ref0 => {
+        var remaining = _ref0.remaining;
         return remaining > 0;
-      }).map(_ref0 => {
-        var dietEntry = _ref0.dietEntry,
-          remaining = _ref0.remaining;
+      }).map(_ref1 => {
+        var dietEntry = _ref1.dietEntry,
+          remaining = _ref1.remaining;
         return `${remaining} ${dietEntry.target()}`;
       });
       throw `Unable to find an order to consume this diet; could not fit ${stuck.join(", ")}.`;
@@ -24910,17 +25004,17 @@ function dietTasks(diet) {
       count = next.count,
       usesShotglass = next.usesShotglass,
       fill = next.fill;
-    var _iterator6 = _createForOfIteratorHelper(ORGANS),
-      _step6;
+    var _iterator9 = _createForOfIteratorHelper(ORGANS),
+      _step9;
     try {
-      for (_iterator6.s(); !(_step6 = _iterator6.n()).done;) {
-        var organ = _step6.value;
+      for (_iterator9.s(); !(_step9 = _iterator9.n()).done;) {
+        var organ = _step9.value;
         used[organ] += count * (fill(organ) - entry.cleans[organ]);
       }
     } catch (err) {
-      _iterator6.e(err);
+      _iterator9.e(err);
     } finally {
-      _iterator6.f();
+      _iterator9.f();
     }
     if (usesShotglass) shotglassAvailable = false;
     entry.remaining -= count;
@@ -24935,17 +25029,17 @@ function consumeDiet(diet, name) {
   kolmafia.print();
   var tasks = dietTasks(diet);
   kolmafia.logprint(`Diet order: ${tasks.map(task => task.name).join(", ")}`);
-  var _iterator7 = _createForOfIteratorHelper(tasks),
-    _step7;
+  var _iterator0 = _createForOfIteratorHelper(tasks),
+    _step0;
   try {
-    for (_iterator7.s(); !(_step7 = _iterator7.n()).done;) {
-      var task = _step7.value;
+    for (_iterator0.s(); !(_step0 = _iterator0.n()).done;) {
+      var task = _step0.value;
       task.perform();
     }
   } catch (err) {
-    _iterator7.e(err);
+    _iterator0.e(err);
   } finally {
-    _iterator7.f();
+    _iterator0.f();
   }
 }
 function dailySpecialPrice(item) {
@@ -24965,11 +25059,11 @@ function runDiet() {
     if (kolmafia.myFamiliar() === $familiar`Stooper`) {
       kolmafia.useFamiliar($familiar.none);
     }
-    var _iterator8 = _createForOfIteratorHelper(kolmafia.Slot.all()),
-      _step8;
+    var _iterator1 = _createForOfIteratorHelper(kolmafia.Slot.all()),
+      _step1;
     try {
-      for (_iterator8.s(); !(_step8 = _iterator8.n()).done;) {
-        var slot = _step8.value;
+      for (_iterator1.s(); !(_step1 = _iterator1.n()).done;) {
+        var slot = _step1.value;
         var item = kolmafia.equippedItem(slot);
         if (kolmafia.numericModifier(item, $modifier`stomach capacity`) || kolmafia.numericModifier(item, $modifier`liver capacity`) || kolmafia.numericModifier(item, $modifier`spleen capacity`)) {
           unequip(slot);
@@ -24978,9 +25072,9 @@ function runDiet() {
 
       // Compute diet
     } catch (err) {
-      _iterator8.e(err);
+      _iterator1.e(err);
     } finally {
-      _iterator8.f();
+      _iterator1.f();
     }
     var dietBuilder = computeDiet();
     if (globalOptions.simdiet) {
@@ -25024,9 +25118,9 @@ function runDiet() {
         current: kolmafia.myFullness,
         max: kolmafia.fullnessLimit
       }];
-      if (organChecks.some(_ref1 => {
-        var current = _ref1.current,
-          max = _ref1.max;
+      if (organChecks.some(_ref10 => {
+        var current = _ref10.current,
+          max = _ref10.max;
         return current() < max();
       })) {
         throw new Error("Tried to fill our organs but couldn't!");
