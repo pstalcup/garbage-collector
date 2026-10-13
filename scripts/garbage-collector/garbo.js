@@ -19763,7 +19763,7 @@ function checkGithubVersion() {
       // Query GitHub for latest release commit
       var gitBranches = JSON.parse(gitData);
       var releaseSHA = (_gitBranches$find = gitBranches.find(branchInfo => branchInfo.name === "release")) === null || _gitBranches$find === void 0 || (_gitBranches$find = _gitBranches$find.commit) === null || _gitBranches$find === void 0 ? void 0 : _gitBranches$find.sha;
-      kolmafia.print(`Local Version: ${localSHA} (built from ${"main"}@${"46b84cc75849eb34864b8553fd541c1d26e93439"})`);
+      kolmafia.print(`Local Version: ${localSHA} (built from ${"main"}@${"9d795c794a7726f0a3f694a7dfed4be03210d173"})`);
       if (releaseSHA === localSHA) {
         kolmafia.print("Garbo is up to date!", HIGHLIGHT);
       } else if (releaseSHA === undefined) {
@@ -24747,9 +24747,7 @@ function itemPriority(menuItems) {
 }
 
 /**
- * A single, distinct dieting action. A diet is turned into an array of these,
- * ordered so that every task fits in our organs when its turn comes, and then
- * performed by iterating over the array once.
+ * A representation of a single diet step (eating, drinking, using, etc.)
  */
 
 var consumeAction = (countToConsume, menuItem) => consumeSafe(countToConsume, menuItem.item, menuItem.additionalValue);
