@@ -20149,7 +20149,7 @@ function checkGithubVersion() {
       // Query GitHub for latest release commit
       var gitBranches = JSON.parse(gitData);
       var releaseSHA = (_gitBranches$find = gitBranches.find(branchInfo => branchInfo.name === "release")) === null || _gitBranches$find === void 0 || (_gitBranches$find = _gitBranches$find.commit) === null || _gitBranches$find === void 0 ? void 0 : _gitBranches$find.sha;
-      kolmafia.print(`Local Version: ${localSHA} (built from ${"main"}@${"c8b822a42fd9da63a67b4eb2fe1b71c623242494"})`);
+      kolmafia.print(`Local Version: ${localSHA} (built from ${"main"}@${"75d29b0d6407eb3bc98b524d755a5afae0ab7aaa"})`);
       if (releaseSHA === localSHA) {
         kolmafia.print("Garbo is up to date!", HIGHLIGHT);
       } else if (releaseSHA === undefined) {
@@ -24479,10 +24479,8 @@ function potionMenu(baseMenu, targets, turns) {
   }) : []));
 }
 /**
- * Plan a diet, rebalancing the potion menu against the number of targets and
- * adventures the diet itself is expected to produce. Stops early once an
- * iteration produces the same targets and adventures it was planned with,
- * since every later iteration would plan the same diet again.
+ * Plan a diet, iteratively re-balancing it to account for potion duration and copytarget fights.
+ * Early exits when it reaches a stable state; otherwise does 5 iterations.
  */
 function planBalancedDiet(baseMenu, dietPlanner) {
   var start = Date.now();
@@ -24517,15 +24515,14 @@ function planBalancedDiet(baseMenu, dietPlanner) {
 }
 
 /**
- * Items libram's planner treats as touching both stomach and liver, with their
- * fullness and inebriety. The planner re-runs its knapsack with and without
- * each of these, so every one left on the menu doubles the planning time.
+ * Items that affect both stomach and liver, as [fullness, inebriety]; negative values clean.
+ * These double diet planning time, because the knapsack is run with and without each of them.
  */
 var crossOrganItems = new Map([[$item`spice melange`, [-3, -3]], [$item`Ultra Mega Sour Ball`, [-3, -3]], [$item`The Plumber's mushroom stew`, [3, -1]], [$item`The Mad Liquor`, [-1, 3]], [$item`Doc Clock's thyme cocktail`, [-2, 4]], [$item`Mr. Burnsger`, [4, -2]]]);
 
 /**
- * An upper bound on the adventures libram's planner can credit to a menu item,
- * applying every adventure bonus it knows about at once.
+ * An upper bound on the adventures from an item, including all possible bonuses.
+ * Used to find items whose best case is still negative, so we can prune them from the menu.
  */
 function maxAdventures(menuItem) {
   var _menuItem$item = menuItem.item,
@@ -24547,17 +24544,9 @@ function maxAdventures(menuItem) {
 }
 
 /**
- * Remove items from the menu that can't possibly be part of the planned diet,
- * so the planner doesn't have to consider them.
- *
- * An ordinary food, booze, or spleen item is only planned if it has positive
- * value, so it can be dropped if even its best-case value is negative.
- *
- * libram only plans a cross-organ item when its own value plus the value of
- * the organ space it frees beats the plan without it. The extra value of `c`
- * units of organ space is at most `c` times the best value per unit of space,
- * plus the value of one item (the knapsack's integrality gap). If even that
- * is negative, the planner would never choose the item.
+ * Prune items that can't possibly be in our planned diet (i.e., items with negative value).
+ * Accounts for cross-organ items by assuming that we fill the cleaned space with
+ * optimal choices.
  */
 function withoutHopelessItems(menu) {
   var valueUpperBound = menuItem => maxAdventures(menuItem) * MPA + (menuItem.additionalValue ?? 0) - menuItem.price();
@@ -24621,16 +24610,9 @@ function withoutHopelessItems(menu) {
 }
 
 /**
- * Keep only the unlimited items that could be the planner's choice at their
- * organ size.
- *
- * The knapsack solver expands each unlimited item into one copy per unit of
- * organ space it could fill, but at any one size it only ever takes the most
- * valuable unlimited item. Items with a maximum are left alone: the planner
- * uses them until they run out, then falls back to the best unlimited item.
- *
- * Which unlimited item is best can change with a fork or mug, Refined Palate,
- * and Gar-ish, so we keep the best item for every combination of those.
+ * Prune out any unlimited item that is strictly surpassed by another unlimited item.
+ * Accounts for forks, mugs, refined palate, etc; doesn't account for proper divisors
+ * of the organ-size (e.g., a size-6 item will not be obsoleted by a stronger size-3 item).
  */
 function withoutDominatedItems(menu) {
   var isCandidate = menuItem => menuItem.maximum === undefined && menuItem.size > 0 && ["food", "booze", "spleen item"].includes(menuItem.organ) && menuItem.additionalValue === undefined && menuItem.effect === undefined && menuItem.mayo === undefined && menuItem.data === undefined && menuItem.item.levelreq <= kolmafia.myLevel() && !crossOrganItems.has(menuItem.item) && !stomachLiverCleaners.has(menuItem.item) && !spleenCleaners.has(menuItem.item);
@@ -24851,9 +24833,9 @@ var noOrgans = () => ({
 });
 
 /**
- * The organ space one unit of a diet entry takes up (or frees, if negative),
- * and how much organ use it cleans. Cleaning can only happen when we have at
- * least that much organ use to clean.
+ * Determine the total organ-filling and organ-cleansing of a given item.
+ * We only ever want to eat a cleanser if it can actually cleanse, so we need
+ * to sequence our diet using this information.
  */
 function organEffects(menuItems) {
   var fills = noOrgans();
@@ -24888,8 +24870,7 @@ function organEffects(menuItems) {
 }
 
 /**
- * Consume `countToConsume` of a diet entry: the food, booze, or spleen item
- * along with its helpers.
+ * Creates a `DietTask` for a given `DietEntry` and `countToConsume`.
  */
 function dietEntryTask(dietEntry, countToConsume, actions) {
   var steps = dietEntry.menuItems.map(menuItem => ({
@@ -24918,11 +24899,9 @@ function dietEntryTask(dietEntry, countToConsume, actions) {
 }
 
 /**
- * Turn a diet into the array of tasks that carry it out, in the order to
- * perform them. Entries are sorted by priority, then scheduled by simulating
- * our organs, so organ cleaners are scheduled once there is something for them
- * to clean and the items they make room for are scheduled after them. Throws
- * before anything is consumed if there is no order that fits.
+ * Transform a diet into an array of diet tasks that can be carried out in order.
+ * For example, cleansers are sequenced after there is filled organ space for them to clear.
+ * Throws before anything is consumed if there is no order that fits.
  */
 function dietTasks(diet) {
   var actions = specialItemActions();
