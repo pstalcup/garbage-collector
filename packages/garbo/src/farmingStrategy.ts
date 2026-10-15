@@ -293,7 +293,23 @@ const THE_MARINARA_TRENCH: FarmingStrategyOptions = {
       .meatKill(),
 };
 
+/**
+ * `nobarf` spends no turns farming, so there is no farming location: valuations that scale with
+ * farming turns see no base meat, and nothing assumes Barf Mountain's monsters or access.
+ */
+const NO_BARF: FarmingStrategyOptions = {
+  stasisRounds: 20,
+  asdonEffect: $effect`Driving Observantly`,
+  ensureBarfAccess: false,
+  meatDrop: 0,
+  location: $location.none,
+  targetMonster: $monster.none,
+  shouldOlfact: false,
+  combat: () => Macro.meatKill(),
+};
+
 function currentStrategy(): FarmingStrategyOptions {
+  if (globalOptions.nobarf) return NO_BARF;
   switch (globalOptions.prefs.farmingMethod) {
     case FarmingMethod.THE_CORAL_CORRAL:
       return THE_CORAL_CORRAL;

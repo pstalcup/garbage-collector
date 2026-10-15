@@ -321,11 +321,7 @@ export function main(argString = ""): void {
   examine($item`designer sweatpants`);
 
   startSession();
-  if (
-    !globalOptions.nobarf &&
-    !globalOptions.simdiet &&
-    FarmingStrategy.ensureBarfAccess
-  ) {
+  if (!globalOptions.simdiet && FarmingStrategy.ensureBarfAccess) {
     ensureBarfAccess();
   }
 
