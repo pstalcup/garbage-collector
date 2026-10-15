@@ -6,6 +6,7 @@ export enum FarmingMethod {
   BARF_MOUNTAIN = "Barf Mountain",
   THE_CORAL_CORRAL = "The Coral Corral",
   THE_MARINARA_TRENCH = "The Marinara Trench",
+  NOBARF = "nobarf",
 }
 
 const workshedAliases = [
@@ -28,7 +29,7 @@ const allWorkshedAliases = [
 
 const farmingStrategyAliases: Record<
   FarmingMethod,
-  { location: Location; aliases: string[] }
+  { location?: Location; aliases: string[] }
 > = {
   [FarmingMethod.BARF_MOUNTAIN]: {
     location: $location`Barf Mountain`,
@@ -50,12 +51,16 @@ const farmingStrategyAliases: Record<
     location: $location`The Marinara Trench`,
     aliases: ["trench", "marinara", "inko", "squido", "ATTheSea"],
   },
+  [FarmingMethod.NOBARF]: {
+    aliases: ["nobarf", "none"],
+  },
 };
 
 function stringToFarmingMethod(s: string): FarmingMethod {
   return (Object.entries(farmingStrategyAliases).find(
     ([, { location, aliases }]) =>
-      toLocation(s) === location || aliases.includes(s.toLowerCase()),
+      (location && toLocation(s) === location) ||
+      aliases.includes(s.toLowerCase()),
   )?.[0] ?? abort(`Invalid farming location: ${s}`)) as FarmingMethod;
 }
 
@@ -124,7 +129,7 @@ You can use multiple options in conjunction, e.g. "garbo nobarf ascend"',
     }),
     nobarf: Args.flag({
       setting: "",
-      help: "do beginning of the day setup, copy target monster, and various daily flags, but will terminate before normal Barf Mountain turns. May close NEP for the day.",
+      help: "do beginning of the day setup, copy target monster, and various daily flags, but will terminate before normal Barf Mountain turns. May close NEP for the day. Shorthand for farmingMethod=nobarf.",
       default: false,
     }),
     nodiet: Args.flag({
@@ -308,7 +313,9 @@ You can use multiple options in conjunction, e.g. "garbo nobarf ascend"',
               ...Object.entries(farmingStrategyAliases).map(
                 ([method, { location, aliases }]): [FarmingMethod, string] => [
                   method as FarmingMethod,
-                  [location.toString(), ...aliases].join(", "),
+                  [...(location ? [location.toString()] : []), ...aliases].join(
+                    ", ",
+                  ),
                 ],
               ),
             ],
@@ -356,4 +363,11 @@ export function isQuickGear(): boolean {
 
 export function isQuickCombat(): boolean {
   return globalOptions.quick || globalOptions.quickcombat;
+}
+
+/**
+ * @returns Whether garbo is running in nobarf mode: doing setup, copy targets and dailies, but not burning turns at a farming location.
+ */
+export function noBarf(): boolean {
+  return globalOptions.prefs.farmingMethod === FarmingMethod.NOBARF;
 }

@@ -293,6 +293,12 @@ const THE_MARINARA_TRENCH: FarmingStrategyOptions = {
       .meatKill(),
 };
 
+// nobarf doesn't spend turns farming, but turn and item valuations still assume Barf Mountain
+const NOBARF: FarmingStrategyOptions = {
+  ...BARF_MOUNTAIN,
+  ensureBarfAccess: false,
+};
+
 function currentStrategy(): FarmingStrategyOptions {
   switch (globalOptions.prefs.farmingMethod) {
     case FarmingMethod.THE_CORAL_CORRAL:
@@ -300,6 +306,9 @@ function currentStrategy(): FarmingStrategyOptions {
 
     case FarmingMethod.THE_MARINARA_TRENCH:
       return THE_MARINARA_TRENCH;
+
+    case FarmingMethod.NOBARF:
+      return NOBARF;
 
     case FarmingMethod.BARF_MOUNTAIN:
     default:

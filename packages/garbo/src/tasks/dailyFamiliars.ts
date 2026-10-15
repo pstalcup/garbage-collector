@@ -26,7 +26,7 @@ import {
   withProperty,
 } from "libram";
 import { withStash } from "../clan";
-import { globalOptions } from "../config";
+import { globalOptions, noBarf } from "../config";
 import {
   meatFamiliar,
   setBestLeprechaunAsMeatFamiliar,
@@ -84,7 +84,7 @@ function entendreValue(targetCount = 0): number {
 }
 
 function worthFeedingRobortender(): boolean {
-  if (!globalOptions.nobarf) return true;
+  if (!noBarf()) return true;
   if (isFree(globalOptions.target)) return false;
   return meatDrop(globalOptions.target) >= 300;
 }

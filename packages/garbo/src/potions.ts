@@ -71,7 +71,7 @@ import {
 } from "./lib";
 import { usingPurse } from "./outfit/lib";
 import { estimatedGarboTurns, highMeatMonsterCount } from "./turns";
-import { globalOptions } from "./config";
+import { globalOptions, noBarf } from "./config";
 import { safeSweatEquityCasts } from "./resources/bloodCubicZirconia";
 import { castAugustScepterBuffs } from "./resources/scepter";
 import { FarmingStrategy } from "./farmingStrategy";
@@ -422,7 +422,7 @@ export class Potion {
         quantity: limitFunction(1),
         value: this.gross(
           overlapTargets,
-          globalOptions.nobarf ? overlapTargets : undefined,
+          noBarf() ? overlapTargets : undefined,
         ),
       });
     }
@@ -430,7 +430,7 @@ export class Potion {
     const targetCoverage =
       targetQuantity + (overlapTargets > 0 ? 1 : 0) * this.effectDuration();
 
-    if (!globalOptions.nobarf) {
+    if (!noBarf()) {
       // unless nobarf, compute the value of barf turns
       // if ascending, break those turns that are not fully covered by a potion into their own value
       const remainingTurns = Math.max(
@@ -942,9 +942,7 @@ class VariableMeatPotion {
         "blue",
       );
       const ascendingOverlap =
-        globalOptions.ascend || globalOptions.nobarf
-          ? 0
-          : this.softcap / this.duration;
+        globalOptions.ascend || noBarf() ? 0 : this.softcap / this.duration;
       const potionsToUse =
         bestOption.quantity +
         ascendingOverlap -

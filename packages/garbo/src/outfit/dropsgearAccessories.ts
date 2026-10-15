@@ -29,7 +29,7 @@ import {
   withLocation,
 } from "../lib";
 import { maximumPinataCasts } from "../resources/yachtzee";
-import { globalOptions } from "../config";
+import { globalOptions, noBarf } from "../config";
 import { garboAverageValue, garboValue } from "../garboValue";
 import { FarmingStrategy } from "../farmingStrategy";
 import { estimatedGarboTurns } from "../turns";
@@ -73,7 +73,7 @@ function luckyGoldRing(mode: BonusEquipMode) {
   }
 
   const dropValues = luckyGoldRingDropValues(
-    !(mode === BonusEquipMode.MEAT_TARGET && !globalOptions.nobarf), // Volcoino drops once per day, only wear during meat targets if nobarf
+    !(mode === BonusEquipMode.MEAT_TARGET && !noBarf()), // Volcoino drops once per day, only wear during meat targets if nobarf
     itemAmount($item`Freddy Kruegerand`) > 0,
   );
 

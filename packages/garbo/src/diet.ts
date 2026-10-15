@@ -97,7 +97,7 @@ import {
 } from "libram";
 import { acquire, priceCaps } from "./acquire";
 import { withVIPClan } from "./clan";
-import { globalOptions } from "./config";
+import { globalOptions, noBarf } from "./config";
 import { expectedGregs } from "./resources/extrovermectin";
 import { shouldAugustCast } from "./resources/scepter";
 import { synthesize } from "./resources/synthesis";
@@ -930,7 +930,7 @@ function potionMenu(
     : [];
 
   const foodCone =
-    realmAvailable("stench") || (globalOptions.simdiet && !globalOptions.nobarf)
+    realmAvailable("stench") || (globalOptions.simdiet && !noBarf())
       ? limitedPotion(
           $item`Dinsey food-cone`,
           Math.floor(availableAmount($item`FunFunds™`) / 2),

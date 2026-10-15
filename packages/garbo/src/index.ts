@@ -65,7 +65,7 @@ import {
   withStash,
   withVIPClan,
 } from "./clan";
-import { globalOptions, isQuickGear } from "./config";
+import { FarmingMethod, globalOptions, isQuickGear, noBarf } from "./config";
 import { dailySetup } from "./dailies";
 import { nonOrganAdventures, runDiet } from "./diet";
 import { dailyFights, freeFights } from "./fights";
@@ -124,6 +124,9 @@ export function main(argString = ""): void {
   checkGithubVersion();
 
   Args.fill(globalOptions, argString);
+  if (globalOptions.nobarf) {
+    globalOptions.prefs.farmingMethod = FarmingMethod.NOBARF;
+  }
   // Instant returns placed before visiting anything.
   if (globalOptions.version) return; // Since we always print the version, all done!
   if (globalOptions.help) {
@@ -296,10 +299,9 @@ export function main(argString = ""): void {
     throw `Your valueOfAdventure is set to ${globalOptions.prefs.valueOfAdventure}, which is too low for barf farming to be worthwhile. If you forgot to set it, use "set valueOfAdventure = XXXX" to set it to your marginal turn meat value.`;
   }
   if (
-    !globalOptions.nobarf &&
+    !noBarf() &&
     globalOptions.prefs.valueOfAdventure &&
-    globalOptions.prefs.valueOfAdventure >=
-      (globalOptions.nobarf ? 20_000 : 10_000)
+    globalOptions.prefs.valueOfAdventure >= (noBarf() ? 20_000 : 10_000)
   ) {
     throw `Your valueOfAdventure is set to ${globalOptions.prefs.valueOfAdventure}, which is definitely incorrect. Please set it to your reliable marginal turn value.`;
   }
@@ -321,11 +323,7 @@ export function main(argString = ""): void {
   examine($item`designer sweatpants`);
 
   startSession();
-  if (
-    !globalOptions.nobarf &&
-    !globalOptions.simdiet &&
-    FarmingStrategy.ensureBarfAccess
-  ) {
+  if (!globalOptions.simdiet && FarmingStrategy.ensureBarfAccess) {
     ensureBarfAccess();
   }
 
@@ -627,7 +625,7 @@ export function main(argString = ""): void {
         runGarboQuests([SetupTargetCopyQuest]);
         dailyFights();
 
-        if (!globalOptions.nobarf) {
+        if (!noBarf()) {
           // 3. burn turns at barf
           potionSetup(false);
           maximize("MP", false);

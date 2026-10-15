@@ -53,7 +53,7 @@ import {
   withChoice,
 } from "libram";
 import { acquire } from "../acquire";
-import { globalOptions } from "../config";
+import { globalOptions, noBarf } from "../config";
 import { aprilFoolsRufus } from "../lib";
 import { rufusPotion } from "../potions";
 import { garboAverageValue, garboValue } from "../garboValue";
@@ -654,8 +654,7 @@ const DailyItemTasks: GarboTask[] = [
       const price = rufusPotion.price();
       _shouldClearRufusQuest = value.some(
         (value) =>
-          (!globalOptions.nobarf || value.name === "target") &&
-          value.value - price > 0,
+          (!noBarf() || value.name === "target") && value.value - price > 0,
       );
       if (_shouldClearRufusQuest) {
         const target = ClosedCircuitPayphone.rufusTarget() as Item;
