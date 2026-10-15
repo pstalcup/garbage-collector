@@ -29,7 +29,7 @@ import {
   withLocation,
 } from "../lib";
 import { maximumPinataCasts } from "../resources/yachtzee";
-import { globalOptions, noBarf } from "../config";
+import { noBarf } from "../config";
 import { garboAverageValue, garboValue } from "../garboValue";
 import { FarmingStrategy } from "../farmingStrategy";
 import { estimatedGarboTurns } from "../turns";
