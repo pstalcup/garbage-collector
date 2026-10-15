@@ -87,7 +87,8 @@ interface FarmingStrategyOptions {
   bonusEffects?: Effect[];
   bonusModifiers?: NumericModifier[];
   banishMonsters?: Monster[];
-  monsters?: () => Monster[];
+  // The monsters we expect to fight while farming; null means the location's monsters
+  monsters?: Monster[] | null;
   prep?: () => void;
   // Whether we spend our remaining turns farming after the target copy fights
   farmsTurns?: boolean;
@@ -107,7 +108,7 @@ const DEFAULT_OPTIONS: Readonly<{
   bonusEffects: [] as Effect[],
   bonusModifiers: [] as NumericModifier[],
   banishMonsters: [] as Monster[],
-  monsters: () => getMonsters(FarmingStrategy.location),
+  monsters: null,
   ncTurns: Infinity,
   prep: () => {},
   farmsTurns: true,
@@ -134,7 +135,11 @@ class FarmingStrategySkeleton {
     return this.location.environment === "underwater";
   }
 
-  farmsOnDinseyIsland(): boolean {
+  getMonsters(): Monster[] {
+    return this.monsters ?? getMonsters(this.location);
+  }
+
+  farmsInDinseylandfill(): boolean {
     return this.farmsTurns && this.location.zone === "Dinseylandfill";
   }
 
@@ -339,7 +344,7 @@ const NONE: FarmingStrategyOptions = {
   farmsTurns: false,
   farmingSetup: [],
   farm: () => {},
-  monsters: () => [],
+  monsters: [],
   maxValueOfAdventure: 20_000,
 };
 
