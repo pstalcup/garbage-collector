@@ -89,6 +89,8 @@ interface FarmingStrategyOptions {
   banishMonsters?: Monster[];
   monsters?: () => Monster[];
   prep?: () => void;
+  // Whether we spend our remaining turns farming after the target copy fights
+  farmsTurns?: boolean;
   // Run in order after the target copy fights, before farming
   farmingSetup?: (() => void)[];
   farm?: () => void;
@@ -108,6 +110,7 @@ const DEFAULT_OPTIONS: Readonly<{
   monsters: () => getMonsters(FarmingStrategy.location),
   ncTurns: Infinity,
   prep: () => {},
+  farmsTurns: true,
   // Function declarations, so these are safe to reference despite import cycles
   farmingSetup: [
     useFarmingPotions,
@@ -329,6 +332,7 @@ const THE_MARINARA_TRENCH = underwaterStrategy({
 const NONE: FarmingStrategyOptions = {
   ...BARF_MOUNTAIN,
   prep: () => {},
+  farmsTurns: false,
   farmingSetup: [],
   farm: () => {},
   monsters: () => [],

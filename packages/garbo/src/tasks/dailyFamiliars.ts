@@ -26,7 +26,7 @@ import {
   withProperty,
 } from "libram";
 import { withStash } from "../clan";
-import { globalOptions, noBarf } from "../config";
+import { globalOptions } from "../config";
 import {
   meatFamiliar,
   setBestLeprechaunAsMeatFamiliar,
@@ -84,7 +84,8 @@ function entendreValue(targetCount = 0): number {
 }
 
 function worthFeedingRobortender(): boolean {
-  if (!noBarf()) return true;
+  // Otherwise Robortender's meat bonus only applies to our target fights
+  if (FarmingStrategy.farmsTurns) return true;
   if (isFree(globalOptions.target)) return false;
   return meatDrop(globalOptions.target) >= 300;
 }

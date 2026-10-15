@@ -71,7 +71,7 @@ import {
   getWhitelistedClans,
   withStash,
 } from "../clan";
-import { globalOptions, noBarf } from "../config";
+import { globalOptions } from "../config";
 import { copyTargetCount } from "../target/fights";
 import { meatFamiliar } from "../familiar/meatFamiliar";
 import { estimatedAttunementTentacles } from "../fights";
@@ -220,11 +220,13 @@ function pantogram(): void {
   if (!Pantogram.have() || Pantogram.havePants()) return;
   let pantogramValue: number;
   if (have($item`repaid diaper`) && have($familiar`Robortender`)) {
-    const expectedBarfTurns = noBarf()
-      ? 0
-      : estimatedGarboTurns() -
+    // Robortender only drinks for the turns we spend farming, not on targets
+    const expectedBarfTurns = Math.max(
+      0,
+      estimatedGarboTurns() -
         wanderingCopytargetsRemaining() -
-        highMeatMonsterCount();
+        highMeatMonsterCount(),
+    );
     pantogramValue = 100 * expectedBarfTurns;
   } else {
     const lepMult = findLeprechaunMultiplier(meatFamiliar());

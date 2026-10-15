@@ -53,7 +53,8 @@ import {
   withChoice,
 } from "libram";
 import { acquire } from "../acquire";
-import { globalOptions, noBarf } from "../config";
+import { globalOptions } from "../config";
+import { FarmingStrategy } from "../farmingStrategy";
 import { aprilFoolsRufus } from "../lib";
 import { rufusPotion } from "../potions";
 import { garboAverageValue, garboValue } from "../garboValue";
@@ -661,7 +662,7 @@ const DailyItemTasks: GarboTask[] = [
   },
   {
     name: "Clear Existing Rufus Quest",
-    ready: () => !noBarf(),
+    ready: () => FarmingStrategy.farmsTurns,
     completed: () =>
       get("_shadowAffinityToday") || _shouldClearRufusQuest !== null,
     do: (): void => {
@@ -674,12 +675,12 @@ const DailyItemTasks: GarboTask[] = [
     spendsTurn: false,
   },
   {
-    name: "Clear Existing Rufus Quest (nobarf)",
-    ready: () => noBarf(),
+    name: "Clear Existing Rufus Quest (no farming)",
+    ready: () => !FarmingStrategy.farmsTurns,
     completed: () =>
       get("_shadowAffinityToday") || _shouldClearRufusQuest !== null,
     do: (): void => {
-      // Without barf turns, Shadow Waters is only worth it for meat targets
+      // Without farming turns, Shadow Waters is only worth it for meat targets
       const price = rufusPotion.price();
       _shouldClearRufusQuest = rufusPotion
         .value(highMeatMonsterCount())

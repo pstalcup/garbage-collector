@@ -17,7 +17,7 @@ import {
   TakerSpace,
   TrainSet,
 } from "libram";
-import { globalOptions, noBarf } from "../config";
+import { globalOptions } from "../config";
 import { candyFactoryValue } from "../lib";
 import { garboAverageValue, garboValue } from "../garboValue";
 import { estimatedGarboTurns } from "../turns";
@@ -140,7 +140,8 @@ export function grabMedicine(): void {
   let match;
   const regexp = /descitem\((\d+)\)/g;
   const itemChoices = new Map<Item, number>();
-  if (!noBarf()) {
+  // Prefer the medicine that boosts our farming location, if we'll be farming
+  if (FarmingStrategy.farmsTurns) {
     switch (FarmingStrategy.location.environment) {
       case "underground":
         itemChoices.set($item`Breathitin™`, -1);
