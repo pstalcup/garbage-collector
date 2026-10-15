@@ -99,16 +99,6 @@ import { FarmingStrategy } from "./farmingStrategy";
 import { runGarboFarmQuests, runGarboQuests } from "./tasks/engine";
 
 // Max price for tickets. You should rethink whether Barf is the best place if they're this expensive.
-const TICKET_MAX_PRICE = 500000;
-
-function ensureBarfAccess() {
-  if (!(get("stenchAirportAlways") || get("_stenchAirportToday"))) {
-    const ticket = $item`one-day ticket to Dinseylandfill`;
-    acquire(1, ticket, TICKET_MAX_PRICE, true);
-    use(ticket);
-  }
-}
-
 function defaultTarget() {
   if ($skills`Curse of Weaksauce, Saucegeyser`.every((s) => have(s))) {
     return maxBy(
@@ -323,9 +313,7 @@ export function main(argString = ""): void {
   examine($item`designer sweatpants`);
 
   startSession();
-  if (!globalOptions.simdiet && FarmingStrategy.ensureBarfAccess) {
-    ensureBarfAccess();
-  }
+  if (!globalOptions.simdiet) FarmingStrategy.prep();
 
   if (globalOptions.simdiet) {
     propertyManager.set({
