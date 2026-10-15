@@ -71,7 +71,7 @@ import {
 } from "./lib";
 import { usingPurse } from "./outfit/lib";
 import { estimatedGarboTurns, highMeatMonsterCount } from "./turns";
-import { globalOptions, noBarf } from "./config";
+import { globalOptions } from "./config";
 import { safeSweatEquityCasts } from "./resources/bloodCubicZirconia";
 import { castAugustScepterBuffs } from "./resources/scepter";
 import { FarmingStrategy } from "./farmingStrategy";
@@ -413,7 +413,7 @@ export class Potion {
       value: targetValue,
     });
 
-    // compute the number of meat targets missed before, and their value (along with barf unless nobarf)
+    // compute the number of meat targets missed before, and their value (along with farming turns, if we farm)
     const overlapTargets = -this.overage(targetTurns, targetQuantity);
 
     if (overlapTargets > 0) {
@@ -422,7 +422,8 @@ export class Potion {
         quantity: limitFunction(1),
         value: this.gross(
           overlapTargets,
-          noBarf() ? overlapTargets : undefined,
+          // Without farming turns, only the overlapping targets benefit
+          FarmingStrategy.farmsTurns ? undefined : overlapTargets,
         ),
       });
     }
@@ -430,8 +431,8 @@ export class Potion {
     const targetCoverage =
       targetQuantity + (overlapTargets > 0 ? 1 : 0) * this.effectDuration();
 
-    if (!noBarf()) {
-      // unless nobarf, compute the value of barf turns
+    if (FarmingStrategy.farmsTurns) {
+      // compute the value of farming turns
       // if ascending, break those turns that are not fully covered by a potion into their own value
       const remainingTurns = Math.max(
         0,
@@ -731,7 +732,7 @@ export function potionSetupCompleted(): boolean {
 }
 /**
  * Determines if potions are worth using by comparing against meat-equilibrium. Considers using pillkeeper to double them. Accounts for non-wanderer targets. Does not account for PYEC/LTC, or running out of turns with the ascend flag.
- * @param targetsOnly Are we valuing the potions only for meat targets (noBarf)?
+ * @param targetsOnly Are we valuing the potions only for meat targets (no farming turns)?
  */
 export function potionSetup(targetsOnly: boolean): void {
   castAugustScepterBuffs();
@@ -942,7 +943,10 @@ class VariableMeatPotion {
         "blue",
       );
       const ascendingOverlap =
-        globalOptions.ascend || noBarf() ? 0 : this.softcap / this.duration;
+        // The extra overlap only matters if we farm turns and aren't ascending
+        globalOptions.ascend || !FarmingStrategy.farmsTurns
+          ? 0
+          : this.softcap / this.duration;
       const potionsToUse =
         bestOption.quantity +
         ascendingOverlap -

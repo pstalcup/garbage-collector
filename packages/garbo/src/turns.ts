@@ -7,7 +7,8 @@ import {
   myTurncount,
 } from "kolmafia";
 import { $familiar, $item, clamp, get, have } from "libram";
-import { globalOptions, noBarf } from "./config";
+import { globalOptions } from "./config";
+import { FarmingStrategy } from "./farmingStrategy";
 // Dumb circular import stuff
 import { usingThumbRing } from "./outfit/dropsgearAccessories";
 import { copyTargetCount } from "./target/fights";
@@ -54,7 +55,8 @@ export function estimatedGarboTurns(estimateEmptyOrgans = true): number {
   let turns;
   if (globalOptions.stopTurncount) {
     turns = globalOptions.stopTurncount - myTurncount();
-  } else if (noBarf()) {
+  } else if (!FarmingStrategy.farmsTurns) {
+    // We'll only spend turns on meat targets
     turns = targetingMeat() ? highMeatMonsterCount() : 0;
   } else if (globalOptions.saveTurns > 0 || !globalOptions.ascend) {
     turns =

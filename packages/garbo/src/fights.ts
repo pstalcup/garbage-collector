@@ -100,7 +100,8 @@ import { WanderDetails } from "garbo-lib";
 import { acquire } from "./acquire";
 import { withStash } from "./clan";
 import { garboAdventure, garboAdventureAuto, Macro, withMacro } from "./combat";
-import { globalOptions, noBarf } from "./config";
+import { globalOptions } from "./config";
+import { FarmingStrategy } from "./farmingStrategy";
 import { postFreeFightDailySetup } from "./dailiespost";
 
 import {
@@ -2221,7 +2222,8 @@ function killRobortCreaturesForFree() {
   if (
     !Robortender.currentDrinks().includes($item`drive-by shooting`) &&
     availableAmount($item`fish head`) > currentHeads &&
-    (!noBarf() || targetingMeat()) &&
+    // Only worth it if Robortender will see meat-dropping fights
+    (FarmingStrategy.farmsTurns || targetingMeat()) &&
     userConfirmDialog(
       "Garbo managed to rustle up a fish head, would you like it to use it to make a drive-by shooting so you can benefit from your robortender? Sorry for flip-flopping on this, life is hard.",
       true,

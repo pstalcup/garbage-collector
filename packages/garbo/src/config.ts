@@ -364,10 +364,3 @@ export function isQuickGear(): boolean {
 export function isQuickCombat(): boolean {
   return globalOptions.quick || globalOptions.quickcombat;
 }
-
-/**
- * @returns Whether garbo is running in nobarf mode: doing setup, copy targets and dailies, but not burning turns at a farming location.
- */
-export function noBarf(): boolean {
-  return globalOptions.prefs.farmingMethod === FarmingMethod.NONE;
-}
