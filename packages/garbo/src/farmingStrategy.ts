@@ -79,6 +79,7 @@ interface FarmingStrategyOptions {
   bonusEffects?: Effect[];
   bonusModifiers?: NumericModifier[];
   banishMonsters?: Monster[];
+  monsters?: () => Monster[];
   post?: () => void;
 }
 
@@ -90,6 +91,7 @@ const DEFAULT_OPTIONS: Readonly<{
   bonusEffects: [] as Effect[],
   bonusModifiers: [] as NumericModifier[],
   banishMonsters: [] as Monster[],
+  monsters: () => getMonsters(FarmingStrategy.location),
   ncTurns: Infinity,
   post: () => {},
   available: true,
@@ -119,10 +121,6 @@ class FarmingStrategySkeleton {
 
   olfactMonster(): Monster | null {
     return this.shouldOlfact ? undelay(this.targetMonster) : null;
-  }
-
-  monsters(): Monster[] {
-    return getMonsters(this.location);
   }
 
   turnsToNC(): number {
@@ -297,6 +295,7 @@ const THE_MARINARA_TRENCH: FarmingStrategyOptions = {
 const NOBARF: FarmingStrategyOptions = {
   ...BARF_MOUNTAIN,
   ensureBarfAccess: false,
+  monsters: () => [],
 };
 
 function currentStrategy(): FarmingStrategyOptions {

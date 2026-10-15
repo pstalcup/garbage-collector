@@ -287,11 +287,12 @@ function extraValue(
 ) {
   const targetValue = totalFamiliarValue(target);
   const meatFamiliarValue = totalFamiliarValue(meat);
-  const jelly = FarmingStrategy.monsters().every(
-    (monster) => monster.attackElement === $element`Stench`,
-  )
-    ? $item`stench jelly`
-    : Item.none;
+  const monsters = FarmingStrategy.monsters();
+  const jelly =
+    monsters.length > 0 &&
+    monsters.every((monster) => monster.attackElement === $element`Stench`)
+      ? $item`stench jelly`
+      : Item.none;
 
   const jellyfishValue = jellyfish
     ? garboValue(jelly) / 20 +
