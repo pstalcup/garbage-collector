@@ -65,7 +65,7 @@ import {
   withStash,
   withVIPClan,
 } from "./clan";
-import { FarmingMethod, globalOptions, isQuickGear, noBarf } from "./config";
+import { FarmingMethod, globalOptions, isQuickGear } from "./config";
 import { dailySetup } from "./dailies";
 import { nonOrganAdventures, runDiet } from "./diet";
 import { dailyFights, freeFights } from "./fights";
@@ -77,26 +77,17 @@ import {
   printEventLog,
   propertyManager,
   questStep,
-  targetingMeat,
   userConfirmDialog,
   valueDrops,
 } from "./lib";
 import { printLog } from "./log";
-import { meatMood } from "./mood";
-import { potionSetup } from "./potions";
 import { endSession, startSession } from "./session";
-import { estimatedGarboTurns } from "./turns";
 import { garboAverageValue } from "./garboValue";
 import { safeRestore } from "./restore";
-
-import {
-  BuffExtensionQuest,
-  PostBuffExtensionQuest,
-} from "./tasks/buffExtension";
 import { shouldAffirmationHate } from "./combat";
 import { acquire } from "./acquire";
 import { FarmingStrategy } from "./farmingStrategy";
-import { runGarboFarmQuests, runGarboQuests } from "./tasks/engine";
+import { runGarboQuests } from "./tasks/engine";
 
 function defaultTarget() {
   if ($skills`Curse of Weaksauce, Saucegeyser`.every((s) => have(s))) {
@@ -611,20 +602,13 @@ export function main(argString = ""): void {
         runGarboQuests([SetupTargetCopyQuest]);
         dailyFights();
 
-        if (!noBarf()) {
-          // 3. burn turns at barf
-          potionSetup(false);
-          maximize("MP", false);
-          meatMood().execute(estimatedGarboTurns());
-          runGarboQuests([BuffExtensionQuest, PostBuffExtensionQuest]);
-          if (!targetingMeat()) runGarboQuests([EmbezzlerFightsQuest]);
-          try {
-            runGarboFarmQuests([PostQuest(), ...FarmQuests()]);
-            runGarboQuests([FinishUpQuest]);
-          } finally {
-            setAutoAttack(0);
-          }
-        } else setAutoAttack(0);
+        // 3. set up for and farm the rest of our turns
+        try {
+          for (const step of FarmingStrategy.farmingSetup) step();
+          FarmingStrategy.farm();
+        } finally {
+          setAutoAttack(0);
+        }
       });
     });
   } finally {
@@ -643,8 +627,4 @@ export function main(argString = ""): void {
   set(completedProperty, ["garbo", argString].filter(Boolean).join(" "));
 }
 import { CockroachFinish, CockroachSetup } from "./tasks/cockroach/prep";
-import { EmbezzlerFightsQuest } from "./tasks/embezzler";
-import { FarmQuests } from "./tasks/farm";
-import { FinishUpQuest } from "./tasks/finishUp";
-import { PostQuest } from "./tasks/post";
 import { SetupTargetCopyQuest } from "./tasks/target";
