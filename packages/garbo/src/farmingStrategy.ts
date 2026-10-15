@@ -337,10 +337,17 @@ const THE_MARINARA_TRENCH = underwaterStrategy({
   banishMonsters: $monsters`diving belle, fisherfish, Mer-kin diver`,
 });
 
-// nobarf doesn't spend turns farming, but turn and item valuations still assume Barf Mountain
+// Fights copy targets and does dailies, but never spends turns farming,
+// so turns outside of target fights are worth no meat or items
 const NONE: FarmingStrategyOptions = {
-  ...BARF_MOUNTAIN,
-  prep: () => {},
+  // Stasis and Asdon only matter for target fights here, so keep Barf Mountain's choices
+  stasisRounds: 20,
+  asdonEffect: $effect`Driving Observantly`,
+  meatDrop: 0,
+  location: $location.none,
+  targetMonster: $monster.none,
+  shouldOlfact: false,
+  combat: () => Macro.meatKill(),
   farmsTurns: false,
   farmingSetup: [],
   farm: () => {},
