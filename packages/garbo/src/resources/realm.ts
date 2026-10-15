@@ -7,7 +7,7 @@ import {
   visitUrl,
 } from "kolmafia";
 import { $item, get, have, maxBy, property, set, withProperty } from "libram";
-import { globalOptions, noBarf } from "../config";
+import { noBarf } from "../config";
 import { garboValue } from "../garboValue";
 import { HIGHLIGHT } from "../lib";
 import { acquire } from "../acquire";
