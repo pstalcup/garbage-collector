@@ -98,7 +98,6 @@ import { acquire } from "./acquire";
 import { FarmingStrategy } from "./farmingStrategy";
 import { runGarboFarmQuests, runGarboQuests } from "./tasks/engine";
 
-// Max price for tickets. You should rethink whether Barf is the best place if they're this expensive.
 function defaultTarget() {
   if ($skills`Curse of Weaksauce, Saucegeyser`.every((s) => have(s))) {
     return maxBy(

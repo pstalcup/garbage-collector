@@ -198,6 +198,7 @@ export const FarmingStrategy = new Proxy(new FarmingStrategySkeleton(), {
   },
 });
 
+// Max price for tickets. You should rethink whether Barf is the best place if they're this expensive.
 const TICKET_MAX_PRICE = 500000;
 
 function ensureBarfAccess(): void {
