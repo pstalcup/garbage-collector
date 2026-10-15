@@ -82,6 +82,8 @@ interface FarmingStrategyOptions {
   banishMonsters?: Monster[];
   monsters?: () => Monster[];
   prep?: () => void;
+  // valueOfAdventure at or above this is assumed to be misconfigured
+  maxValueOfAdventure?: number;
   post?: () => void;
 }
 
@@ -96,6 +98,7 @@ const DEFAULT_OPTIONS: Readonly<{
   monsters: () => getMonsters(FarmingStrategy.location),
   ncTurns: Infinity,
   prep: () => {},
+  maxValueOfAdventure: 10_000,
   post: () => {},
   available: true,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -308,6 +311,7 @@ const NOBARF: FarmingStrategyOptions = {
   ...BARF_MOUNTAIN,
   prep: () => {},
   monsters: () => [],
+  maxValueOfAdventure: 20_000,
 };
 
 function currentStrategy(): FarmingStrategyOptions {
