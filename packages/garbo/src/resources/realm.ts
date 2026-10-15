@@ -124,8 +124,8 @@ export function checkBarfQuest(): void {
     return;
   }
 
-  // Track Maintenance needs farming turns to complete, so only take it if we'll be farming
-  const targets = FarmingStrategy.farmsTurns
+  // Track Maintenance needs farming turns on Dinsey Island to complete
+  const targets = FarmingStrategy.farmsOnDinseyIsland()
     ? ["Track Maintenance", "Electrical Maintenance"] // In decreasing order of priority
     : ["Electrical Maintenance"];
 

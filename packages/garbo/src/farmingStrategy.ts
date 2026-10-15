@@ -134,6 +134,10 @@ class FarmingStrategySkeleton {
     return this.location.environment === "underwater";
   }
 
+  farmsOnDinseyIsland(): boolean {
+    return this.farmsTurns && this.location.zone === "Dinseylandfill";
+  }
+
   accountForNC(): boolean {
     return this.ncTurns !== Infinity;
   }
