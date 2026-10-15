@@ -72,6 +72,20 @@ import { highMeatMonsterCount } from "../turns";
 const SummonTomes = $skills`Summon Snowcones, Summon Stickers, Summon Sugar Sheets, Summon Rad Libs, Summon Smithsness`;
 const Wads = $items`twinkly wad, cold wad, stench wad, hot wad, sleaze wad, spooky wad`;
 let _shouldClearRufusQuest: boolean | null = null;
+
+function clearRufusQuest(): void {
+  const target = ClosedCircuitPayphone.rufusTarget() as Item;
+  if (get("rufusQuestType") === "items") {
+    if (acquire(3, target, 2 * mallPrice(target), false, 100000)) {
+      withChoice(1498, 1, () => use($item`closed-circuit pay phone`));
+    }
+  } else if (get("rufusQuestType") === "artifact") {
+    if (have(target)) {
+      withChoice(1498, 1, () => use($item`closed-circuit pay phone`));
+    }
+  }
+}
+
 let smashedBarrels = false;
 
 function drawBestCards(): void {
@@ -647,27 +661,30 @@ const DailyItemTasks: GarboTask[] = [
   },
   {
     name: "Clear Existing Rufus Quest",
+    ready: () => !noBarf(),
     completed: () =>
       get("_shadowAffinityToday") || _shouldClearRufusQuest !== null,
     do: (): void => {
-      const value = rufusPotion.value(highMeatMonsterCount());
       const price = rufusPotion.price();
-      _shouldClearRufusQuest = value.some(
-        (value) =>
-          (!noBarf() || value.name === "target") && value.value - price > 0,
-      );
-      if (_shouldClearRufusQuest) {
-        const target = ClosedCircuitPayphone.rufusTarget() as Item;
-        if (get("rufusQuestType") === "items") {
-          if (acquire(3, target, 2 * mallPrice(target), false, 100000)) {
-            withChoice(1498, 1, () => use($item`closed-circuit pay phone`));
-          }
-        } else if (get("rufusQuestType") === "artifact") {
-          if (have(target)) {
-            withChoice(1498, 1, () => use($item`closed-circuit pay phone`));
-          }
-        }
-      }
+      _shouldClearRufusQuest = rufusPotion
+        .value(highMeatMonsterCount())
+        .some(({ value }) => value - price > 0);
+      if (_shouldClearRufusQuest) clearRufusQuest();
+    },
+    spendsTurn: false,
+  },
+  {
+    name: "Clear Existing Rufus Quest (nobarf)",
+    ready: () => noBarf(),
+    completed: () =>
+      get("_shadowAffinityToday") || _shouldClearRufusQuest !== null,
+    do: (): void => {
+      // Without barf turns, Shadow Waters is only worth it for meat targets
+      const price = rufusPotion.price();
+      _shouldClearRufusQuest = rufusPotion
+        .value(highMeatMonsterCount())
+        .some(({ name, value }) => name === "target" && value - price > 0);
+      if (_shouldClearRufusQuest) clearRufusQuest();
     },
     spendsTurn: false,
   },
