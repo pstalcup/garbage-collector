@@ -35,6 +35,13 @@ import {
   undelay,
 } from "libram";
 import { acquire } from "./acquire";
+import {
+  castFarmingBuffs,
+  extendFarmingBuffs,
+  farmTurns,
+  fightLuckyTargets,
+  useFarmingPotions,
+} from "./farmingSetup";
 import { Macro } from "./combat";
 import { FarmingMethod, globalOptions } from "./config";
 import { completeBarfQuest } from "./resources/realm";
@@ -82,6 +89,9 @@ interface FarmingStrategyOptions {
   banishMonsters?: Monster[];
   monsters?: () => Monster[];
   prep?: () => void;
+  // Run in order after the target copy fights, before farming
+  farmingSetup?: (() => void)[];
+  farm?: () => void;
   // valueOfAdventure at or above this is assumed to be misconfigured
   maxValueOfAdventure?: number;
   post?: () => void;
@@ -98,6 +108,14 @@ const DEFAULT_OPTIONS: Readonly<{
   monsters: () => getMonsters(FarmingStrategy.location),
   ncTurns: Infinity,
   prep: () => {},
+  // Function declarations, so these are safe to reference despite import cycles
+  farmingSetup: [
+    useFarmingPotions,
+    castFarmingBuffs,
+    extendFarmingBuffs,
+    fightLuckyTargets,
+  ],
+  farm: farmTurns,
   maxValueOfAdventure: 10_000,
   post: () => {},
   available: true,
@@ -310,6 +328,8 @@ const THE_MARINARA_TRENCH: FarmingStrategyOptions = {
 const NONE: FarmingStrategyOptions = {
   ...BARF_MOUNTAIN,
   prep: () => {},
+  farmingSetup: [],
+  farm: () => {},
   monsters: () => [],
   maxValueOfAdventure: 20_000,
 };
