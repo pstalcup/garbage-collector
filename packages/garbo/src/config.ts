@@ -6,7 +6,7 @@ export enum FarmingMethod {
   BARF_MOUNTAIN = "Barf Mountain",
   THE_CORAL_CORRAL = "The Coral Corral",
   THE_MARINARA_TRENCH = "The Marinara Trench",
-  NOBARF = "nobarf",
+  NONE = "none",
 }
 
 const workshedAliases = [
@@ -51,7 +51,7 @@ const farmingStrategyAliases: Record<
     location: $location`The Marinara Trench`,
     aliases: ["trench", "marinara", "inko", "squido", "ATTheSea"],
   },
-  [FarmingMethod.NOBARF]: {
+  [FarmingMethod.NONE]: {
     aliases: ["nobarf", "none"],
   },
 };
@@ -369,5 +369,5 @@ export function isQuickCombat(): boolean {
  * @returns Whether garbo is running in nobarf mode: doing setup, copy targets and dailies, but not burning turns at a farming location.
  */
 export function noBarf(): boolean {
-  return globalOptions.prefs.farmingMethod === FarmingMethod.NOBARF;
+  return globalOptions.prefs.farmingMethod === FarmingMethod.NONE;
 }

@@ -114,7 +114,7 @@ export function main(argString = ""): void {
 
   Args.fill(globalOptions, argString);
   if (globalOptions.nobarf) {
-    globalOptions.prefs.farmingMethod = FarmingMethod.NOBARF;
+    globalOptions.prefs.farmingMethod = FarmingMethod.NONE;
   }
   // Instant returns placed before visiting anything.
   if (globalOptions.version) return; // Since we always print the version, all done!

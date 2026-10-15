@@ -307,7 +307,7 @@ const THE_MARINARA_TRENCH: FarmingStrategyOptions = {
 };
 
 // nobarf doesn't spend turns farming, but turn and item valuations still assume Barf Mountain
-const NOBARF: FarmingStrategyOptions = {
+const NONE: FarmingStrategyOptions = {
   ...BARF_MOUNTAIN,
   prep: () => {},
   monsters: () => [],
@@ -322,8 +322,8 @@ function currentStrategy(): FarmingStrategyOptions {
     case FarmingMethod.THE_MARINARA_TRENCH:
       return THE_MARINARA_TRENCH;
 
-    case FarmingMethod.NOBARF:
-      return NOBARF;
+    case FarmingMethod.NONE:
+      return NONE;
 
     case FarmingMethod.BARF_MOUNTAIN:
     default:
