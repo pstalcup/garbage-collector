@@ -932,9 +932,7 @@ function potionMenu(
   const foodCone =
     realmAvailable("stench") ||
     // simdiet runs before we'd buy a Dinsey ticket, so assume we will if we're farming on Dinsey Island
-    (globalOptions.simdiet &&
-      FarmingStrategy.farmsTurns &&
-      FarmingStrategy.location.zone === "Dinseylandfill")
+    (globalOptions.simdiet && FarmingStrategy.farmsOnDinseyIsland())
       ? limitedPotion(
           $item`Dinsey food-cone`,
           Math.floor(availableAmount($item`FunFunds™`) / 2),
