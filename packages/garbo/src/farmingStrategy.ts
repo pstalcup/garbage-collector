@@ -261,22 +261,51 @@ const BARF_MOUNTAIN: FarmingStrategyOptions = {
   post: completeBarfQuest,
 };
 
-const underwaterOutfit: FarmingStrategyOptions["outfit"] = ({ banish }) =>
-  banish?.equip ? { equip: [banish.equip] } : {};
+// The underwater zones share everything but their location, monsters and availability
+function underwaterStrategy({
+  location,
+  targetMonster,
+  banishMonsters,
+  available = true,
+  preCombat = () => new Macro(),
+}: {
+  location: Location;
+  targetMonster: Monster;
+  banishMonsters: Monster[];
+  available?: boolean;
+  preCombat?: () => Macro;
+}): FarmingStrategyOptions {
+  return {
+    stasisRounds: 5,
+    asdonEffect: $effect`Driving Waterproofly`,
+    meatDrop: 300,
+    location,
+    banishMonsters,
+    targetMonster,
+    shouldOlfact: false,
+    available: effectFact(targetMonster) === $effect`Fishy` && available,
+    outfit: ({ banish }) => (banish?.equip ? { equip: [banish.equip] } : {}),
+    combat: ({ banish }) =>
+      preCombat()
+        .farmingBanish(banish)
+        .externalIf(
+          myBuffedstat($stat`Moxie`) < targetMonster.baseAttack + 10 ||
+            (have($skill`Hero of the Half-Shell`) &&
+              itemType(equippedItem($slot`offhand`)) === "shield" &&
+              myBuffedstat($stat`Muscle`) < targetMonster.baseAttack + 10),
+          Macro.delevel(),
+        )
+        .externalIf(redTaffyWorth(), Macro.tryItem($item`pulled red taffy`))
+        .meatKill(),
+  };
+}
 
-const THE_CORAL_CORRAL: FarmingStrategyOptions = {
-  stasisRounds: 5,
-  asdonEffect: $effect`Driving Waterproofly`,
-  meatDrop: 300,
+const THE_CORAL_CORRAL = underwaterStrategy({
   location: $location`The Coral Corral`,
-  banishMonsters: $monsters`Mer-kin rustler, sea cowboy`,
   targetMonster: $monster`sea cow`,
-  shouldOlfact: false,
-  available:
-    effectFact($monster`sea cow`) === $effect`Fishy` &&
-    (!get("seahorseName") || get("lassoTrainingCount") >= 20),
-  outfit: underwaterOutfit,
-  combat: ({ banish }) =>
+  banishMonsters: $monsters`Mer-kin rustler, sea cowboy`,
+  available: !get("seahorseName") || get("lassoTrainingCount") >= 20,
+  preCombat: () =>
     Macro.externalIf(
       !get("seahorseName"),
       Macro.if_(
@@ -287,42 +316,14 @@ const THE_CORAL_CORRAL: FarmingStrategyOptions = {
           .item($item`sea lasso`)
           .abortWithMsg("Wild seahorse should have been tamed, what happened?"),
       ),
-    )
-      .farmingBanish(banish)
-      .externalIf(
-        myBuffedstat($stat`Moxie`) < $monster`sea cow`.baseAttack + 10 ||
-          (have($skill`Hero of the Half-Shell`) &&
-            itemType(equippedItem($slot`offhand`)) === "shield" &&
-            myBuffedstat($stat`Muscle`) < $monster`sea cow`.baseAttack + 10),
-        Macro.delevel(),
-      )
-      .externalIf(redTaffyWorth(), Macro.tryItem($item`pulled red taffy`))
-      .meatKill(),
-};
+    ),
+});
 
-const THE_MARINARA_TRENCH: FarmingStrategyOptions = {
-  stasisRounds: 5,
-  asdonEffect: $effect`Driving Waterproofly`,
-  meatDrop: 300,
+const THE_MARINARA_TRENCH = underwaterStrategy({
   location: $location`The Marinara Trench`,
-  banishMonsters: $monsters`diving belle, fisherfish, Mer-kin diver`,
   targetMonster: $monster`giant squid`,
-  shouldOlfact: false,
-  available: effectFact($monster`giant squid`) === $effect`Fishy`,
-  outfit: underwaterOutfit,
-  combat: ({ banish }) =>
-    Macro.farmingBanish(banish)
-      .externalIf(
-        myBuffedstat($stat`Moxie`) < $monster`giant squid`.baseAttack + 10 ||
-          (have($skill`Hero of the Half-Shell`) &&
-            itemType(equippedItem($slot`offhand`)) === "shield" &&
-            myBuffedstat($stat`Muscle`) <
-              $monster`giant squid`.baseAttack + 10),
-        Macro.delevel(),
-      )
-      .externalIf(redTaffyWorth(), Macro.tryItem($item`pulled red taffy`))
-      .meatKill(),
-};
+  banishMonsters: $monsters`diving belle, fisherfish, Mer-kin diver`,
+});
 
 // nobarf doesn't spend turns farming, but turn and item valuations still assume Barf Mountain
 const NONE: FarmingStrategyOptions = {
