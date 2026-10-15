@@ -10,6 +10,7 @@ import {
   mallPrice,
   Monster,
   myBuffedstat,
+  use,
 } from "kolmafia";
 import { GarboStrategy } from "./combatStrategy";
 import {
@@ -33,6 +34,7 @@ import {
   sum,
   undelay,
 } from "libram";
+import { acquire } from "./acquire";
 import { Macro } from "./combat";
 import { FarmingMethod, globalOptions } from "./config";
 import { completeBarfQuest } from "./resources/realm";
@@ -66,7 +68,6 @@ const touristFamilyRatio = touristFamilies / barfTourists;
 interface FarmingStrategyOptions {
   stasisRounds: number;
   asdonEffect: Effect;
-  ensureBarfAccess: boolean;
   meatDrop: number;
   location: Location;
   targetMonster: Delayed<Monster>;
@@ -80,6 +81,7 @@ interface FarmingStrategyOptions {
   bonusModifiers?: NumericModifier[];
   banishMonsters?: Monster[];
   monsters?: () => Monster[];
+  prep?: () => void;
   post?: () => void;
 }
 
@@ -93,6 +95,7 @@ const DEFAULT_OPTIONS: Readonly<{
   banishMonsters: [] as Monster[],
   monsters: () => getMonsters(FarmingStrategy.location),
   ncTurns: Infinity,
+  prep: () => {},
   post: () => {},
   available: true,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -195,10 +198,20 @@ export const FarmingStrategy = new Proxy(new FarmingStrategySkeleton(), {
   },
 });
 
+const TICKET_MAX_PRICE = 500000;
+
+function ensureBarfAccess(): void {
+  if (!(get("stenchAirportAlways") || get("_stenchAirportToday"))) {
+    const ticket = $item`one-day ticket to Dinseylandfill`;
+    acquire(1, ticket, TICKET_MAX_PRICE, true);
+    use(ticket);
+  }
+}
+
 const BARF_MOUNTAIN: FarmingStrategyOptions = {
   stasisRounds: 20,
   asdonEffect: $effect`Driving Observantly`,
-  ensureBarfAccess: true,
+  prep: ensureBarfAccess,
   meatDrop: 250,
   ncTurns: () =>
     (27 * barfTourists) /
@@ -232,7 +245,6 @@ const underwaterOutfit: FarmingStrategyOptions["outfit"] = ({ banish }) =>
 const THE_CORAL_CORRAL: FarmingStrategyOptions = {
   stasisRounds: 5,
   asdonEffect: $effect`Driving Waterproofly`,
-  ensureBarfAccess: false,
   meatDrop: 300,
   location: $location`The Coral Corral`,
   banishMonsters: $monsters`Mer-kin rustler, sea cowboy`,
@@ -269,7 +281,6 @@ const THE_CORAL_CORRAL: FarmingStrategyOptions = {
 const THE_MARINARA_TRENCH: FarmingStrategyOptions = {
   stasisRounds: 5,
   asdonEffect: $effect`Driving Waterproofly`,
-  ensureBarfAccess: false,
   meatDrop: 300,
   location: $location`The Marinara Trench`,
   banishMonsters: $monsters`diving belle, fisherfish, Mer-kin diver`,
@@ -294,7 +305,7 @@ const THE_MARINARA_TRENCH: FarmingStrategyOptions = {
 // nobarf doesn't spend turns farming, but turn and item valuations still assume Barf Mountain
 const NOBARF: FarmingStrategyOptions = {
   ...BARF_MOUNTAIN,
-  ensureBarfAccess: false,
+  prep: () => {},
   monsters: () => [],
 };
 
