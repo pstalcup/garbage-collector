@@ -287,7 +287,7 @@ function extraValue(
 ) {
   const targetValue = totalFamiliarValue(target);
   const meatFamiliarValue = totalFamiliarValue(meat);
-  const monsters = FarmingStrategy.monsters();
+  const monsters = FarmingStrategy.getMonsters();
   const jelly =
     monsters.length > 0 &&
     monsters.every((monster) => monster.attackElement === $element`Stench`)

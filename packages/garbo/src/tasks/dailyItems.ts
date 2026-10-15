@@ -77,7 +77,7 @@ let _shouldClearRufusQuest: boolean | null = null;
 function clearRufusQuest(): void {
   const target = ClosedCircuitPayphone.rufusTarget() as Item;
   if (get("rufusQuestType") === "items") {
-    if (acquire(3, target, 2 * mallPrice(target), false, 100000)) {
+    if (acquire(3, target, 2 * mallPrice(target), false, 100_000)) {
       withChoice(1498, 1, () => use($item`closed-circuit pay phone`));
     }
   } else if (get("rufusQuestType") === "artifact") {
