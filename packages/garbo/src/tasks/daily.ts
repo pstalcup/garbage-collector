@@ -71,7 +71,7 @@ import {
   getWhitelistedClans,
   withStash,
 } from "../clan";
-import { globalOptions } from "../config";
+import { globalOptions, noBarf } from "../config";
 import { copyTargetCount } from "../target/fights";
 import { meatFamiliar } from "../familiar/meatFamiliar";
 import { estimatedAttunementTentacles } from "../fights";
@@ -220,7 +220,7 @@ function pantogram(): void {
   if (!Pantogram.have() || Pantogram.havePants()) return;
   let pantogramValue: number;
   if (have($item`repaid diaper`) && have($familiar`Robortender`)) {
-    const expectedBarfTurns = globalOptions.nobarf
+    const expectedBarfTurns = noBarf()
       ? 0
       : estimatedGarboTurns() -
         wanderingCopytargetsRemaining() -
