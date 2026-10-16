@@ -13,7 +13,8 @@ import { Macro } from "../combat";
 
 export type BanishMethod = {
   available: () => boolean;
-  macro: Macro;
+  // Delayed so Macro isn't touched while modules are still loading
+  macro: () => Macro;
   source: Skill | Item;
   equip?: Item;
   retrieve?: boolean;
@@ -23,7 +24,8 @@ const banishMethods: BanishMethod[] = [
   {
     source: $skill`Spring Kick`,
     available: () => have($item`spring shoes`),
-    macro: Macro.trySkill($skill`Spring Kick`).trySkill($skill`Spring Away`),
+    macro: () =>
+      Macro.trySkill($skill`Spring Kick`).trySkill($skill`Spring Away`),
     equip: $item`spring shoes`,
   },
   {
@@ -32,19 +34,19 @@ const banishMethods: BanishMethod[] = [
       myClass() === $class`Seal Clubber` &&
       have($skill`Batter Up!`) &&
       myFury() >= 5,
-    macro: Macro.trySkill($skill`Batter Up!`),
+    macro: () => Macro.trySkill($skill`Batter Up!`),
     equip: $item`seal-clubbing club`,
   },
   {
     source: $skill`Order a Kneecapping`,
     available: () =>
       have($skill`Order a Kneecapping`) && !get("_kneecappingOrdered"),
-    macro: Macro.trySkill($skill`Order a Kneecapping`),
+    macro: () => Macro.trySkill($skill`Order a Kneecapping`),
   },
   {
     source: $item`human musk`,
     available: () => true,
-    macro: Macro.tryItem($item`human musk`),
+    macro: () => Macro.tryItem($item`human musk`),
     retrieve: true,
   },
   {
@@ -52,7 +54,7 @@ const banishMethods: BanishMethod[] = [
     available: () =>
       have($item`Monodent of the Sea`) && get("_seadentLightningUsed", 0) < 11,
     equip: $item`Monodent of the Sea`,
-    macro: Macro.trySkill($skill`Sea *dent: Throw a Lightning Bolt`),
+    macro: () => Macro.trySkill($skill`Sea *dent: Throw a Lightning Bolt`),
   },
 ];
 
