@@ -19772,7 +19772,7 @@ function checkGithubVersion() {
       // Query GitHub for latest release commit
       var gitBranches = JSON.parse(gitData);
       var releaseSHA = (_gitBranches$find = gitBranches.find(branchInfo => branchInfo.name === "release")) === null || _gitBranches$find === void 0 || (_gitBranches$find = _gitBranches$find.commit) === null || _gitBranches$find === void 0 ? void 0 : _gitBranches$find.sha;
-      kolmafia.print(`Local Version: ${localSHA} (built from ${"main"}@${"635a982b2cd39b53c351cae83f373e63a37b1df9"})`);
+      kolmafia.print(`Local Version: ${localSHA} (built from ${"main"}@${"16d629614f975b8f38b10df621c1379c15d3a441"})`);
       if (releaseSHA === localSHA) {
         kolmafia.print("Garbo is up to date!", HIGHLIGHT);
       } else if (releaseSHA === undefined) {
@@ -23492,10 +23492,13 @@ function eatSafe(qty, item) {
     if (!kolmafia.eat(qty, item)) throw "Failed to eat safely";
   }, item);
 }
-var EXPENSIVE_SONGS = FarmingStrategy.isUnderwater() ? $effects`The Ballad of Richie Thingfinder, Chorale of Companionship, Donho's Bubbly Ballad` : $effects`The Ballad of Richie Thingfinder, Chorale of Companionship`;
+
+// Evaluated lazily: FarmingStrategy may not be initialized yet when this module loads
+var expensiveSongs = () => FarmingStrategy.isUnderwater() ? $effects`The Ballad of Richie Thingfinder, Chorale of Companionship, Donho's Bubbly Ballad` : $effects`The Ballad of Richie Thingfinder, Chorale of Companionship`;
 var USEFUL_SONGS = $effects`Polka of Plenty, Ur-Kel's Aria of Annoyance, Fat Leon's Phat Loot Lyric`;
 function shrugForOde() {
-  var inexpensiveSongs = getActiveSongs().filter(e => !EXPENSIVE_SONGS.includes(e));
+  var expensive = expensiveSongs();
+  var inexpensiveSongs = getActiveSongs().filter(e => !expensive.includes(e));
   var uselessSongs = inexpensiveSongs.filter(e => !USEFUL_SONGS.includes(e));
   if (uselessSongs.length >= 1) return uneffect(uselessSongs[0]);
   if (inexpensiveSongs.length === 1) return uneffect(inexpensiveSongs[0]);
