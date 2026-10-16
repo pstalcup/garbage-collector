@@ -19772,7 +19772,7 @@ function checkGithubVersion() {
       // Query GitHub for latest release commit
       var gitBranches = JSON.parse(gitData);
       var releaseSHA = (_gitBranches$find = gitBranches.find(branchInfo => branchInfo.name === "release")) === null || _gitBranches$find === void 0 || (_gitBranches$find = _gitBranches$find.commit) === null || _gitBranches$find === void 0 ? void 0 : _gitBranches$find.sha;
-      kolmafia.print(`Local Version: ${localSHA} (built from ${"main"}@${"16d629614f975b8f38b10df621c1379c15d3a441"})`);
+      kolmafia.print(`Local Version: ${localSHA} (built from ${"main"}@${"1c75e627041f2c7bac4aa4b514e150fca4cafa32"})`);
       if (releaseSHA === localSHA) {
         kolmafia.print("Garbo is up to date!", HIGHLIGHT);
       } else if (releaseSHA === undefined) {
@@ -25615,27 +25615,27 @@ function checkPrefWatchReports() {
 var banishMethods = [{
   source: $skill`Spring Kick`,
   available: () => have$P($item`spring shoes`),
-  macro: Macro.trySkill($skill`Spring Kick`).trySkill($skill`Spring Away`),
+  macro: () => Macro.trySkill($skill`Spring Kick`).trySkill($skill`Spring Away`),
   equip: $item`spring shoes`
 }, {
   source: $skill`Batter Up!`,
   available: () => kolmafia.myClass() === $class`Seal Clubber` && have$P($skill`Batter Up!`) && kolmafia.myFury() >= 5,
-  macro: Macro.trySkill($skill`Batter Up!`),
+  macro: () => Macro.trySkill($skill`Batter Up!`),
   equip: $item`seal-clubbing club`
 }, {
   source: $skill`Order a Kneecapping`,
   available: () => have$P($skill`Order a Kneecapping`) && !get$2("_kneecappingOrdered"),
-  macro: Macro.trySkill($skill`Order a Kneecapping`)
+  macro: () => Macro.trySkill($skill`Order a Kneecapping`)
 }, {
   source: $item`human musk`,
   available: () => true,
-  macro: Macro.tryItem($item`human musk`),
+  macro: () => Macro.tryItem($item`human musk`),
   retrieve: true
 }, {
   source: $skill`Sea *dent: Throw a Lightning Bolt`,
   available: () => have$P($item`Monodent of the Sea`) && get$2("_seadentLightningUsed", 0) < 11,
   equip: $item`Monodent of the Sea`,
-  macro: Macro.trySkill($skill`Sea *dent: Throw a Lightning Bolt`)
+  macro: () => Macro.trySkill($skill`Sea *dent: Throw a Lightning Bolt`)
 }];
 var banishAvailable = method => method.available() && !FarmingStrategy.banishMonsters.includes(getBanishedMonsters().get(method.source) ?? $monster.none);
 function chooseBanish() {
@@ -30146,7 +30146,7 @@ var BarfTurnTasks = [{
   }],
   do: $location`The Briny Deeps`,
   outfit: () => meatTargetOutfit({}, $location`The Briny Deeps`),
-  combat: _construct(GarboStrategy, _toConsumableArray(digitizeMacros(Macro.item($item`pulled green taffy`)))),
+  combat: _construct(GarboStrategy, _toConsumableArray(digitizeMacros(() => Macro.item($item`pulled green taffy`)))),
   sobriety: "sober",
   spendsTurn: true
 }, {
@@ -31264,7 +31264,7 @@ var Macro = /*#__PURE__*/function (_StrictMacro) {
     key: "farmingBanish",
     value: function farmingBanish(banish) {
       if (!banish || !FarmingStrategy.banishMonsters.length) return this;
-      return this.if_(FarmingStrategy.banishMonsters, banish.macro);
+      return this.if_(FarmingStrategy.banishMonsters, banish.macro());
     }
   }], [{
     key: "abortWithMsg",
