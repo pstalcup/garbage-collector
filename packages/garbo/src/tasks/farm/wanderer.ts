@@ -361,7 +361,7 @@ const BarfTurnTasks: GarboTask[] = [
     do: $location`The Briny Deeps`,
     outfit: () => meatTargetOutfit({}, $location`The Briny Deeps`),
     combat: new GarboStrategy(
-      ...digitizeMacros(Macro.item($item`pulled green taffy`)),
+      ...digitizeMacros(() => Macro.item($item`pulled green taffy`)),
     ),
     sobriety: "sober",
     spendsTurn: true,
