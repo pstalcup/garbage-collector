@@ -19772,7 +19772,7 @@ function checkGithubVersion() {
       // Query GitHub for latest release commit
       var gitBranches = JSON.parse(gitData);
       var releaseSHA = (_gitBranches$find = gitBranches.find(branchInfo => branchInfo.name === "release")) === null || _gitBranches$find === void 0 || (_gitBranches$find = _gitBranches$find.commit) === null || _gitBranches$find === void 0 ? void 0 : _gitBranches$find.sha;
-      kolmafia.print(`Local Version: ${localSHA} (built from ${"main"}@${"2d813adad4dab7347fa6e537f1d885e19b42e443"})`);
+      kolmafia.print(`Local Version: ${localSHA} (built from ${"main"}@${"12ec76546dcf43f77efcd0f3745d119a4ae5171e"})`);
       if (releaseSHA === localSHA) {
         kolmafia.print("Garbo is up to date!", HIGHLIGHT);
       } else if (releaseSHA === undefined) {
@@ -27500,7 +27500,8 @@ var juneCleaverChoices = () => Object.fromEntries(choices.map(choice => [choice,
 function juneCleaver() {
   return {
     name: "June Cleaver",
-    ready: () => have$r() && teleportEffects.every(e => !have$P(e)) && kolmafia.myAdventures() > 0,
+    ready: () => have$r() && teleportEffects.every(e => !have$P(e)) && kolmafia.myAdventures() > 0 && !exists("portscan.edu"),
+    // don't burn the adventure the queued agent needs
     completed: () => get$2("_juneCleaverFightsLeft") > 0,
     do: () => {
       var location = kolmafia.myInebriety() > kolmafia.inebrietyLimit() ? $location`Drunken Stupor` : $location`Noob Cave`;
