@@ -32,6 +32,7 @@ import {
   AutumnAton,
   BurningLeaves,
   CinchoDeMayo,
+  Counter,
   DesignerSweatpants,
   FloristFriar,
   get,
@@ -262,7 +263,8 @@ function juneCleaver(): GarboPostTask {
     ready: () =>
       JuneCleaver.have() &&
       teleportEffects.every((e) => !have(e)) &&
-      myAdventures() > 0,
+      myAdventures() > 0 &&
+      !Counter.exists("portscan.edu"), // don't burn the adventure the queued agent needs
     completed: () => get("_juneCleaverFightsLeft") > 0,
     do: () => {
       const location =
