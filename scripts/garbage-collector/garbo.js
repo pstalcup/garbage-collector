@@ -19772,7 +19772,7 @@ function checkGithubVersion() {
       // Query GitHub for latest release commit
       var gitBranches = JSON.parse(gitData);
       var releaseSHA = (_gitBranches$find = gitBranches.find(branchInfo => branchInfo.name === "release")) === null || _gitBranches$find === void 0 || (_gitBranches$find = _gitBranches$find.commit) === null || _gitBranches$find === void 0 ? void 0 : _gitBranches$find.sha;
-      kolmafia.print(`Local Version: ${localSHA} (built from ${"main"}@${"1c75e627041f2c7bac4aa4b514e150fca4cafa32"})`);
+      kolmafia.print(`Local Version: ${localSHA} (built from ${"main"}@${"2d813adad4dab7347fa6e537f1d885e19b42e443"})`);
       if (releaseSHA === localSHA) {
         kolmafia.print("Garbo is up to date!", HIGHLIGHT);
       } else if (releaseSHA === undefined) {
@@ -20714,7 +20714,7 @@ var Potion = /*#__PURE__*/function () {
     var options = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
     _classCallCheck(this, Potion);
     this.potion = potion;
-    this.providesDoubleDuration = options.providesDoubleDuration;
+    this.durationMultiplier = options.durationMultiplier ?? 1;
     this.canDouble = options.canDouble ?? true;
     this.overrideDuration = options.duration;
     this.overrideEffect = options.effect;
@@ -20728,7 +20728,7 @@ var Potion = /*#__PURE__*/function () {
     value: function doubleDuration() {
       if (this.canDouble) {
         return new Potion(this.potion, {
-          providesDoubleDuration: true,
+          durationMultiplier: 2 * this.durationMultiplier,
           canDouble: this.canDouble,
           duration: this.overrideDuration,
           effect: this.overrideEffect,
@@ -20747,7 +20747,7 @@ var Potion = /*#__PURE__*/function () {
   }, {
     key: "effectDuration",
     value: function effectDuration() {
-      return (this.overrideDuration ?? get$1("Effect Duration", this.potion)) * (this.providesDoubleDuration ? 2 : 1);
+      return (this.overrideDuration ?? get$1("Effect Duration", this.potion)) * this.durationMultiplier;
     }
   }, {
     key: "smithsness",
@@ -20984,7 +20984,6 @@ function useAsValuable(potion, targets, targetsOnly) {
   return total;
 }
 var rufusPotion = new Potion($item`closed-circuit pay phone`, {
-  providesDoubleDuration: false,
   canDouble: false,
   effect: $effect`Shadow Waters`,
   duration: 30,
@@ -23460,6 +23459,26 @@ function workshedTasks() {
 var MPA = get$2("valueOfAdventure");
 kolmafia.print(`Using adventure value ${MPA}.`, HIGHLIGHT);
 var Mayo = Mayo$1;
+/**
+ * Pastas of legend (dishes cooked with legendary noodles) lead to Legendary Digestion
+ * when eaten. Its stomach option doubles the effect durations of the next three foods,
+ * stacking multiplicatively with Mayozapine. Eating a dish while that is active spends
+ * a charge, so back-to-back dishes add only two charges each after the first.
+ */
+var LEGENDARY_DIGESTION = 1599;
+var LEGENDARY_DIGESTION_STOMACH = 5;
+var legendaryNoodleDishes = ["Frutti di Scatoletta", "Pesto alla Marziano", "Arrattabbattabiata", "Orzo di Riso", "Pasta Grimavera", "Linguini Ubriacapa", "Gnocci Domani", "Formica e Pepe", "Tubetto Gelatto"].map(name => kolmafia.toItem(name)).filter(item => item !== $item.none);
+var isNoodleTier = data => !!(data !== null && data !== void 0 && data.endsWith("(noodle-doubled)"));
+
+/** Foods already set to have their effects doubled by Legendary Digestion */
+function existingNoodleCharges() {
+  return get$2("legendaryNoodlesStomach", 0);
+}
+
+/** Doubled foods gained from the nth noodle dish, eaten back-to-back */
+function noodleDishCharges(index) {
+  return index === 0 ? 3 : 2;
+}
 function hasMoonZoneRestaurant() {
   return $locations`Camp Logging Camp, Thugnderdome`.some(loc => kolmafia.canAdventure(loc));
 }
@@ -23918,6 +23937,21 @@ function ingredientCost(item) {
  * @param turns number of turns total expecte
  */
 function potionMenu(baseMenu, targets, turns) {
+  // Food potions are deferred, so that Legendary Digestion charges can go to the best of them
+  var foodPotions = [];
+  function potionTiers(potion, limit, options, mayo) {
+    var noodleDoubled = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : false;
+    if (limit === 0) return [];
+    return potion.value(targets, turns, limit).map(tier => new MenuItem(potion.potion, {
+      maximum: tier.quantity,
+      additionalValue: tier.value,
+      priceOverride: options.price,
+      organ: options.organ,
+      size: options.size,
+      data: noodleDoubled ? `${tier.name} (noodle-doubled)` : tier.name,
+      mayo
+    }));
+  }
   function limitedPotion(input, limit) {
     var _GarboWorkshed$curren;
     var options = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
@@ -23925,20 +23959,81 @@ function potionMenu(baseMenu, targets, turns) {
       return [];
     }
     var potion = input instanceof kolmafia.Item ? new Potion(input) : input;
+    if (kolmafia.itemType(potion.potion) !== "food") {
+      return potionTiers(potion, limit, options, undefined);
+    }
     var mayo = undefined;
-    if (kolmafia.itemType(potion.potion) === "food" && (((_GarboWorkshed$curren = GarboWorkshed.current) === null || _GarboWorkshed$curren === void 0 ? void 0 : _GarboWorkshed$curren.workshed) === $item`portable Mayo Clinic` || switchingToMayo())) {
+    if (((_GarboWorkshed$curren = GarboWorkshed.current) === null || _GarboWorkshed$curren === void 0 ? void 0 : _GarboWorkshed$curren.workshed) === $item`portable Mayo Clinic` || switchingToMayo()) {
       potion = potion.doubleDuration();
       mayo = Mayo.zapine;
     }
-    return potion.value(targets, turns, limit).map(tier => new MenuItem(potion.potion, {
-      maximum: tier.quantity,
-      additionalValue: tier.value,
-      priceOverride: options.price,
-      organ: options.organ,
-      size: options.size,
-      data: tier.name,
+    foodPotions.push({
+      potion,
+      limit,
+      options,
       mayo
-    }));
+    });
+    return [];
+  }
+
+  /**
+   * Assign Legendary Digestion charges, existing and from noodle dishes we own, to the
+   * food potions that gain the most from doubling (on top of any mayo doubling).
+   * Existing charges become noodle-doubled tiers; the gain from a dish's charges is
+   * credited to the dish itself, since the planner can't tie the two together.
+   */
+  function noodleMenu() {
+    var dishes = legendaryNoodleDishes.flatMap(dish => new Array(kolmafia.availableAmount(dish)).fill(dish));
+    var existing = existingNoodleCharges();
+    var totalCharges = existing + sumNumbers(dishes.map((_, index) => noodleDishCharges(index)));
+    var bestValue = potion => {
+      var _potion$value$;
+      return ((_potion$value$ = potion.value(targets, turns, 1)[0]) === null || _potion$value$ === void 0 ? void 0 : _potion$value$.value) ?? 0;
+    };
+    var ranked = foodPotions.map(foodPotion => {
+      var doubled = bestValue(foodPotion.potion.doubleDuration());
+      var price = foodPotion.options.price ?? foodPotion.potion.price();
+      return {
+        foodPotion,
+        gain: doubled > price ? doubled - bestValue(foodPotion.potion) : -1
+      };
+    }).filter(_ref4 => {
+      var gain = _ref4.gain;
+      return gain > 0;
+    }).sort((a, b) => b.gain - a.gain);
+    var charges = [];
+    var _iterator = _createForOfIteratorHelper(ranked),
+      _step;
+    try {
+      for (_iterator.s(); !(_step = _iterator.n()).done;) {
+        var entry = _step.value;
+        var uses = Math.min(entry.foodPotion.limit ?? Infinity, totalCharges - charges.length);
+        for (var i = 0; i < uses; i++) charges.push(entry);
+      }
+    } catch (err) {
+      _iterator.e(err);
+    } finally {
+      _iterator.f();
+    }
+    var potionItems = foodPotions.flatMap(foodPotion => {
+      var potion = foodPotion.potion,
+        limit = foodPotion.limit,
+        options = foodPotion.options,
+        mayo = foodPotion.mayo;
+      var doubledUses = charges.slice(0, existing).filter(charge => charge.foodPotion === foodPotion).length;
+      if (doubledUses === 0) return potionTiers(potion, limit, options, mayo);
+      return [].concat(_toConsumableArray(potionTiers(potion.doubleDuration(), doubledUses, options, mayo, true)), _toConsumableArray(potionTiers(potion, limit === undefined ? undefined : limit - doubledUses, options, mayo)));
+    });
+    var used = existing;
+    var dishItems = dishes.map((dish, index) => {
+      var dishCharges = charges.slice(used, used + noodleDishCharges(index));
+      used += noodleDishCharges(index);
+      return new MenuItem(dish, {
+        maximum: 1,
+        additionalValue: sum(dishCharges, "gain")
+      });
+    });
+    return [].concat(_toConsumableArray(potionItems), _toConsumableArray(dishItems));
   }
   function potion(potion) {
     var options = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
@@ -23965,7 +24060,7 @@ function potionMenu(baseMenu, targets, turns) {
   }], out => limitedPotion(out.item, 1, {
     price: out.price
   }));
-  return [].concat(_toConsumableArray(baseMenu), _toConsumableArray(copiers()), _toConsumableArray(potion($item`jumping horseradish`)), _toConsumableArray(potion($item`tempura cauliflower`)), _toConsumableArray(potion($item`sea truffle`)), _toConsumableArray(potion($item`tempura broccoli`)), _toConsumableArray(potion($item`Miserable Pie`)), _toConsumableArray(potion($item`Every Day is Like This Sundae`)), _toConsumableArray(potion($item`bowl of mummy guts`)), _toConsumableArray(potion($item`haunted Hell ramen`)), _toConsumableArray(campfireHotdog), _toConsumableArray(foodCone), _toConsumableArray(borisBread), _toConsumableArray(deepDish.flat()), _toConsumableArray(potion($item`dirt julep`)), _toConsumableArray(potion($item`Ambitious Turkey`)), _toConsumableArray(potion($item`Friendly Turkey`)), _toConsumableArray(potion($item`vintage smart drink`)), _toConsumableArray(potion($item`Strikes Again Bigmouth`)), _toConsumableArray(potion($item`Irish Coffee, English Heart`)), _toConsumableArray(potion($item`Jack-O-Lantern beer`)), _toConsumableArray(potion($item`Amnesiac Ale`)), _toConsumableArray(potion($item`mentholated wine`)), _toConsumableArray(potion($item`Feliz Navidad`)), _toConsumableArray(potion($item`broberry brogurt`)), _toConsumableArray(potion($item`haunted martini`)), _toConsumableArray(potion($item`bottle of Greedy Dog`)), _toConsumableArray(potion($item`twice-haunted screwdriver`, {
+  var menuItems = [].concat(_toConsumableArray(baseMenu), _toConsumableArray(copiers()), _toConsumableArray(potion($item`jumping horseradish`)), _toConsumableArray(potion($item`tempura cauliflower`)), _toConsumableArray(potion($item`sea truffle`)), _toConsumableArray(potion($item`tempura broccoli`)), _toConsumableArray(potion($item`Miserable Pie`)), _toConsumableArray(potion($item`Every Day is Like This Sundae`)), _toConsumableArray(potion($item`bowl of mummy guts`)), _toConsumableArray(potion($item`haunted Hell ramen`)), _toConsumableArray(campfireHotdog), _toConsumableArray(foodCone), _toConsumableArray(borisBread), _toConsumableArray(deepDish.flat()), _toConsumableArray(potion($item`dirt julep`)), _toConsumableArray(potion($item`Ambitious Turkey`)), _toConsumableArray(potion($item`Friendly Turkey`)), _toConsumableArray(potion($item`vintage smart drink`)), _toConsumableArray(potion($item`Strikes Again Bigmouth`)), _toConsumableArray(potion($item`Irish Coffee, English Heart`)), _toConsumableArray(potion($item`Jack-O-Lantern beer`)), _toConsumableArray(potion($item`Amnesiac Ale`)), _toConsumableArray(potion($item`mentholated wine`)), _toConsumableArray(potion($item`Feliz Navidad`)), _toConsumableArray(potion($item`broberry brogurt`)), _toConsumableArray(potion($item`haunted martini`)), _toConsumableArray(potion($item`bottle of Greedy Dog`)), _toConsumableArray(potion($item`twice-haunted screwdriver`, {
     price: twiceHauntedPrice
   })), _toConsumableArray(limitedPotion($item`high-end ginger wine`, kolmafia.availableAmount($item`high-end ginger wine`))), _toConsumableArray(limitedPotion($item`Hot Socks`, hasSpeakeasy ? 3 : 0, {
     price: 5000
@@ -23979,6 +24074,7 @@ function potionMenu(baseMenu, targets, turns) {
     organ: "spleen item",
     price: 0
   }) : []));
+  return [].concat(_toConsumableArray(menuItems), _toConsumableArray(noodleMenu()));
 }
 /**
  * Plan a diet, iteratively re-balancing it to account for potion duration and copytarget fights.
@@ -24057,11 +24153,11 @@ function withoutHopelessItems(menu) {
   var ratioAndValue = organ => {
     var ratio = 0;
     var value = 0;
-    var _iterator = _createForOfIteratorHelper(menu),
-      _step;
+    var _iterator2 = _createForOfIteratorHelper(menu),
+      _step2;
     try {
-      for (_iterator.s(); !(_step = _iterator.n()).done;) {
-        var _menuItem = _step.value;
+      for (_iterator2.s(); !(_step2 = _iterator2.n()).done;) {
+        var _menuItem = _step2.value;
         if (_menuItem.organ !== organ || crossOrganItems.has(_menuItem.item)) {
           continue;
         }
@@ -24072,9 +24168,9 @@ function withoutHopelessItems(menu) {
         value = Math.max(value, itemValue);
       }
     } catch (err) {
-      _iterator.e(err);
+      _iterator2.e(err);
     } finally {
-      _iterator.f();
+      _iterator2.f();
     }
     return {
       ratio,
@@ -24083,9 +24179,9 @@ function withoutHopelessItems(menu) {
   };
   var food = ratioAndValue("food");
   var booze = ratioAndValue("booze");
-  var freedSpaceValue = (size, _ref4) => {
-    var ratio = _ref4.ratio,
-      value = _ref4.value;
+  var freedSpaceValue = (size, _ref5) => {
+    var ratio = _ref5.ratio,
+      value = _ref5.value;
     return size < 0 ? -size * ratio + value : 0;
   };
   // An overfull organ makes the planner's "without" case invalid; don't guess.
@@ -24127,9 +24223,9 @@ function withoutDominatedItems(menu) {
     useForkMug,
     modifiers
   })));
-  var value = (menuItem, _ref5) => {
-    var useForkMug = _ref5.useForkMug,
-      modifiers = _ref5.modifiers;
+  var value = (menuItem, _ref6) => {
+    var useForkMug = _ref6.useForkMug,
+      modifiers = _ref6.modifiers;
     var helper = useForkMug ? forkMug(menuItem) : undefined;
     var helperSets = [helper ? [helper] : []];
     if (seasoning && menuItem.organ === "food") {
@@ -24142,45 +24238,45 @@ function withoutDominatedItems(menu) {
     })));
   };
   var groups = new Map();
-  var _iterator2 = _createForOfIteratorHelper(menu.filter(isCandidate)),
-    _step2;
-  try {
-    for (_iterator2.s(); !(_step2 = _iterator2.n()).done;) {
-      var _menuItem2 = _step2.value;
-      var key = `${_menuItem2.organ}:${_menuItem2.size}`;
-      groups.set(key, [].concat(_toConsumableArray(groups.get(key) ?? []), [_menuItem2]));
-    }
-  } catch (err) {
-    _iterator2.e(err);
-  } finally {
-    _iterator2.f();
-  }
-  var kept = new Set();
-  var _iterator3 = _createForOfIteratorHelper(groups.values()),
+  var _iterator3 = _createForOfIteratorHelper(menu.filter(isCandidate)),
     _step3;
   try {
     for (_iterator3.s(); !(_step3 = _iterator3.n()).done;) {
-      var group = _step3.value;
-      var _iterator4 = _createForOfIteratorHelper(scenarios),
-        _step4;
-      try {
-        var _loop2 = function _loop2() {
-          var scenario = _step4.value;
-          kept.add(maxBy(group, menuItem => value(menuItem, scenario)));
-        };
-        for (_iterator4.s(); !(_step4 = _iterator4.n()).done;) {
-          _loop2();
-        }
-      } catch (err) {
-        _iterator4.e(err);
-      } finally {
-        _iterator4.f();
-      }
+      var _menuItem2 = _step3.value;
+      var key = `${_menuItem2.organ}:${_menuItem2.size}`;
+      groups.set(key, [].concat(_toConsumableArray(groups.get(key) ?? []), [_menuItem2]));
     }
   } catch (err) {
     _iterator3.e(err);
   } finally {
     _iterator3.f();
+  }
+  var kept = new Set();
+  var _iterator4 = _createForOfIteratorHelper(groups.values()),
+    _step4;
+  try {
+    for (_iterator4.s(); !(_step4 = _iterator4.n()).done;) {
+      var group = _step4.value;
+      var _iterator5 = _createForOfIteratorHelper(scenarios),
+        _step5;
+      try {
+        var _loop2 = function _loop2() {
+          var scenario = _step5.value;
+          kept.add(maxBy(group, menuItem => value(menuItem, scenario)));
+        };
+        for (_iterator5.s(); !(_step5 = _iterator5.n()).done;) {
+          _loop2();
+        }
+      } catch (err) {
+        _iterator5.e(err);
+      } finally {
+        _iterator5.f();
+      }
+    }
+  } catch (err) {
+    _iterator4.e(err);
+  } finally {
+    _iterator4.f();
   }
   return menu.filter(menuItem => !isCandidate(menuItem) || kept.has(menuItem));
 }
@@ -24212,15 +24308,16 @@ function printDiet(diet, name) {
   kolmafia.print(`===== ${name} DIET =====`);
   if (diet.entries.length === 0) return;
   diet = diet.copy();
-  diet.entries.sort((a, b) => itemPriority(b.menuItems) - itemPriority(a.menuItems));
+  var noodleDoubling = usesNoodleDoubling(diet);
+  diet.entries.sort((a, b) => itemPriority(b.menuItems, noodleDoubling) - itemPriority(a.menuItems, noodleDoubling));
   var targets = Math.floor(highMeatMonsterCount() + countCopies(diet));
   var adventures = Math.floor(estimatedGarboTurns(false) + diet.expectedAdventures());
   kolmafia.print(`Planning to fight ${targets} ${globalOptions.target} and run ${adventures} adventures`);
-  var _iterator5 = _createForOfIteratorHelper(diet.entries),
-    _step5;
+  var _iterator6 = _createForOfIteratorHelper(diet.entries),
+    _step6;
   try {
-    for (_iterator5.s(); !(_step5 = _iterator5.n()).done;) {
-      var dietEntry = _step5.value;
+    for (_iterator6.s(); !(_step6 = _iterator6.n()).done;) {
+      var dietEntry = _step6.value;
       if (dietEntry.quantity === 0) continue;
       var target = dietEntry.target();
       var datastr = target.data ? `(${target.data})` : "";
@@ -24231,9 +24328,9 @@ function printDiet(diet, name) {
       kolmafia.print(`${dietEntry.quantity}${maxstr} ${target}${datastr}${helpersstr} ${valuestr}`);
     }
   } catch (err) {
-    _iterator5.e(err);
+    _iterator6.e(err);
   } finally {
-    _iterator5.f();
+    _iterator6.f();
   }
   var totalValue = diet.expectedValue(MPA);
   var totalCost = diet.expectedPrice();
@@ -24241,15 +24338,35 @@ function printDiet(diet, name) {
   kolmafia.print(`Assuming MPA of ${MPA}, Total Cost ${totalCost}, Total Value ${totalValue}, Net Value ${netValue}`);
 }
 
+/**
+ * Whether this diet uses Legendary Digestion charges, so its food potions should be
+ * eaten before other foods spend the charges.
+ */
+function usesNoodleDoubling(diet) {
+  return existingNoodleCharges() > 0 || diet.entries.some(_ref7 => {
+    var menuItems = _ref7.menuItems,
+      quantity = _ref7.quantity;
+    return quantity > 0 && menuItems.some(menuItem => legendaryNoodleDishes.includes(menuItem.item));
+  });
+}
+
 // Item priority - higher means we eat it first.
 // Anything that gives a consumption buff should go first (e.g. Refined Palate).
+// With Legendary Digestion charges, use existing charges, then eat noodle dishes,
+// then food potions, so the charges double the potions rather than other food.
 function itemPriority(menuItems) {
+  var noodleDoubling = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
   // Last menu item is the food itself.
   var menuItem = menuItems[menuItems.length - 1];
   if (menuItem === undefined) {
     throw "Shouldn't have an empty menu item.";
   }
   if (menuItem.item === $item`spaghetti breakfast`) return 200;
+  if (noodleDoubling) {
+    if (isNoodleTier(menuItem.data)) return 170;
+    if (legendaryNoodleDishes.includes(menuItem.item)) return 160;
+    if (menuItem.data && menuItem.itemType() === "food") return 150;
+  }
   if ($items`pocket wish, toasted brie`.includes(menuItem.item) || spleenCleaners.get(menuItem.item) || stomachLiverCleaners.get(menuItem.item)) {
     return 100;
   } else {
@@ -24312,12 +24429,20 @@ function specialItemActions() {
     for (var n = 1; n <= countToConsume; n++) {
       kolmafia.useSkill($skill`Sweat Out Some Booze`);
     }
-  }], [$item`august scepter`, () => kolmafia.useSkill($skill`Aug. 16th: Roller Coaster Day!`)]]));
+  }], [$item`august scepter`, () => kolmafia.useSkill($skill`Aug. 16th: Roller Coaster Day!`)]], _toConsumableArray(legendaryNoodleDishes.map(dish => [dish, (countToConsume, menuItem) => {
+    // One at a time, since each leads to Legendary Digestion
+    for (var i = 0; i < countToConsume; i++) {
+      withChoice(LEGENDARY_DIGESTION, LEGENDARY_DIGESTION_STOMACH, () => consumeSafe(1, menuItem.item, menuItem.additionalValue));
+      if (kolmafia.handlingChoice() && kolmafia.lastChoice() === LEGENDARY_DIGESTION) {
+        kolmafia.runChoice(LEGENDARY_DIGESTION_STOMACH);
+      }
+    }
+  }]))));
 }
 function acquireSeasoningTask(diet) {
-  var seasoningCount = sum(diet.entries, _ref6 => {
-    var menuItems = _ref6.menuItems,
-      quantity = _ref6.quantity;
+  var seasoningCount = sum(diet.entries, _ref8 => {
+    var menuItems = _ref8.menuItems,
+      quantity = _ref8.quantity;
     return menuItems.some(menuItem => menuItem.item === $item`Special Seasoning`) ? quantity : 0;
   });
   return {
@@ -24340,11 +24465,11 @@ var noOrgans = () => ({
 function organEffects(menuItems) {
   var fills = noOrgans();
   var cleans = noOrgans();
-  var _iterator6 = _createForOfIteratorHelper(menuItems),
-    _step6;
+  var _iterator7 = _createForOfIteratorHelper(menuItems),
+    _step7;
   try {
-    for (_iterator6.s(); !(_step6 = _iterator6.n()).done;) {
-      var _menuItem3 = _step6.value;
+    for (_iterator7.s(); !(_step7 = _iterator7.n()).done;) {
+      var _menuItem3 = _step7.value;
       var cleaning = stomachLiverCleaners.get(_menuItem3.item);
       var spleenCleaned = spleenCleaners.get(_menuItem3.item);
       if (cleaning) {
@@ -24359,9 +24484,9 @@ function organEffects(menuItems) {
       if (spleenCleaned) cleans["spleen item"] += spleenCleaned;
     }
   } catch (err) {
-    _iterator6.e(err);
+    _iterator7.e(err);
   } finally {
-    _iterator6.f();
+    _iterator7.f();
   }
   return {
     fills,
@@ -24380,19 +24505,19 @@ function dietEntryTask(dietEntry, countToConsume, actions) {
   return {
     name: `${countToConsume} ${dietEntry.target()}`,
     perform: () => {
-      var _iterator7 = _createForOfIteratorHelper(steps),
-        _step7;
+      var _iterator8 = _createForOfIteratorHelper(steps),
+        _step8;
       try {
-        for (_iterator7.s(); !(_step7 = _iterator7.n()).done;) {
-          var _step7$value = _step7.value,
-            _menuItem4 = _step7$value.menuItem,
-            action = _step7$value.action;
+        for (_iterator8.s(); !(_step8 = _iterator8.n()).done;) {
+          var _step8$value = _step8.value,
+            _menuItem4 = _step8$value.menuItem,
+            action = _step8$value.action;
           action(countToConsume, _menuItem4);
         }
       } catch (err) {
-        _iterator7.e(err);
+        _iterator8.e(err);
       } finally {
-        _iterator7.f();
+        _iterator8.f();
       }
     }
   };
@@ -24417,7 +24542,8 @@ function dietTasks(diet) {
     "spleen item": kolmafia.spleenLimit()
   };
   var shotglassAvailable = !get$2("_mimeArmyShotglassUsed") && have$P($item`mime army shotglass`);
-  var pending = _toConsumableArray(diet.entries).sort((a, b) => itemPriority(b.menuItems) - itemPriority(a.menuItems)).map(dietEntry => _objectSpread2({
+  var noodleDoubling = usesNoodleDoubling(diet);
+  var pending = _toConsumableArray(diet.entries).sort((a, b) => itemPriority(b.menuItems, noodleDoubling) - itemPriority(a.menuItems, noodleDoubling)).map(dietEntry => _objectSpread2({
     dietEntry,
     remaining: dietEntry.quantity
   }, organEffects(dietEntry.menuItems)));
@@ -24429,11 +24555,11 @@ function dietTasks(diet) {
     var usesShotglass = shotglassAvailable && entry.dietEntry.menuItems.some(menuItem => menuItem.organ === "booze" && menuItem.size === 1);
     var fill = organ => usesShotglass && organ === "booze" ? 0 : fills[organ];
     var count = usesShotglass ? 1 : entry.remaining;
-    var _iterator8 = _createForOfIteratorHelper(ORGANS),
-      _step8;
+    var _iterator9 = _createForOfIteratorHelper(ORGANS),
+      _step9;
     try {
-      for (_iterator8.s(); !(_step8 = _iterator8.n()).done;) {
-        var organ = _step8.value;
+      for (_iterator9.s(); !(_step9 = _iterator9.n()).done;) {
+        var organ = _step9.value;
         if (fill(organ) > 0) {
           count = Math.min(count, Math.floor((capacity[organ] - used[organ]) / fill(organ)));
         }
@@ -24442,9 +24568,9 @@ function dietTasks(diet) {
         }
       }
     } catch (err) {
-      _iterator8.e(err);
+      _iterator9.e(err);
     } finally {
-      _iterator8.f();
+      _iterator9.f();
     }
     return {
       count,
@@ -24455,26 +24581,26 @@ function dietTasks(diet) {
 
   // Always schedule the highest priority entry that fits, so that space freed by
   // a cleaner goes to the entries that were waiting on it.
-  while (pending.some(_ref7 => {
-    var remaining = _ref7.remaining;
+  while (pending.some(_ref9 => {
+    var remaining = _ref9.remaining;
     return remaining > 0;
   })) {
-    var next = pending.filter(_ref8 => {
-      var remaining = _ref8.remaining;
+    var next = pending.filter(_ref0 => {
+      var remaining = _ref0.remaining;
       return remaining > 0;
     }).map(entry => _objectSpread2({
       entry
-    }, fit(entry))).find(_ref9 => {
-      var count = _ref9.count;
+    }, fit(entry))).find(_ref1 => {
+      var count = _ref1.count;
       return count > 0;
     });
     if (!next) {
-      var stuck = pending.filter(_ref0 => {
-        var remaining = _ref0.remaining;
+      var stuck = pending.filter(_ref10 => {
+        var remaining = _ref10.remaining;
         return remaining > 0;
-      }).map(_ref1 => {
-        var dietEntry = _ref1.dietEntry,
-          remaining = _ref1.remaining;
+      }).map(_ref11 => {
+        var dietEntry = _ref11.dietEntry,
+          remaining = _ref11.remaining;
         return `${remaining} ${dietEntry.target()}`;
       });
       throw `Unable to find an order to consume this diet; could not fit ${stuck.join(", ")}.`;
@@ -24483,17 +24609,17 @@ function dietTasks(diet) {
       count = next.count,
       usesShotglass = next.usesShotglass,
       fill = next.fill;
-    var _iterator9 = _createForOfIteratorHelper(ORGANS),
-      _step9;
+    var _iterator0 = _createForOfIteratorHelper(ORGANS),
+      _step0;
     try {
-      for (_iterator9.s(); !(_step9 = _iterator9.n()).done;) {
-        var organ = _step9.value;
+      for (_iterator0.s(); !(_step0 = _iterator0.n()).done;) {
+        var organ = _step0.value;
         used[organ] += count * (fill(organ) - entry.cleans[organ]);
       }
     } catch (err) {
-      _iterator9.e(err);
+      _iterator0.e(err);
     } finally {
-      _iterator9.f();
+      _iterator0.f();
     }
     if (usesShotglass) shotglassAvailable = false;
     entry.remaining -= count;
@@ -24508,17 +24634,17 @@ function consumeDiet(diet, name) {
   kolmafia.print();
   var tasks = dietTasks(diet);
   kolmafia.logprint(`Diet order: ${tasks.map(task => task.name).join(", ")}`);
-  var _iterator0 = _createForOfIteratorHelper(tasks),
-    _step0;
+  var _iterator1 = _createForOfIteratorHelper(tasks),
+    _step1;
   try {
-    for (_iterator0.s(); !(_step0 = _iterator0.n()).done;) {
-      var task = _step0.value;
+    for (_iterator1.s(); !(_step1 = _iterator1.n()).done;) {
+      var task = _step1.value;
       task.perform();
     }
   } catch (err) {
-    _iterator0.e(err);
+    _iterator1.e(err);
   } finally {
-    _iterator0.f();
+    _iterator1.f();
   }
 }
 function dailySpecialPrice(item) {
@@ -24538,11 +24664,11 @@ function runDiet() {
     if (kolmafia.myFamiliar() === $familiar`Stooper`) {
       kolmafia.useFamiliar($familiar.none);
     }
-    var _iterator1 = _createForOfIteratorHelper(kolmafia.Slot.all()),
-      _step1;
+    var _iterator10 = _createForOfIteratorHelper(kolmafia.Slot.all()),
+      _step10;
     try {
-      for (_iterator1.s(); !(_step1 = _iterator1.n()).done;) {
-        var slot = _step1.value;
+      for (_iterator10.s(); !(_step10 = _iterator10.n()).done;) {
+        var slot = _step10.value;
         var item = kolmafia.equippedItem(slot);
         if (kolmafia.numericModifier(item, $modifier`stomach capacity`) || kolmafia.numericModifier(item, $modifier`liver capacity`) || kolmafia.numericModifier(item, $modifier`spleen capacity`)) {
           unequip(slot);
@@ -24551,9 +24677,9 @@ function runDiet() {
 
       // Compute diet
     } catch (err) {
-      _iterator1.e(err);
+      _iterator10.e(err);
     } finally {
-      _iterator1.f();
+      _iterator10.f();
     }
     var dietBuilder = computeDiet();
     if (globalOptions.simdiet) {
@@ -24597,9 +24723,9 @@ function runDiet() {
         current: kolmafia.myFullness,
         max: kolmafia.fullnessLimit
       }];
-      if (organChecks.some(_ref10 => {
-        var current = _ref10.current,
-          max = _ref10.max;
+      if (organChecks.some(_ref12 => {
+        var current = _ref12.current,
+          max = _ref12.max;
         return current() < max();
       })) {
         throw new Error("Tried to fill our organs but couldn't!");
