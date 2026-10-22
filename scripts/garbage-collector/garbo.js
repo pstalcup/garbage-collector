@@ -19772,7 +19772,7 @@ function checkGithubVersion() {
       // Query GitHub for latest release commit
       var gitBranches = JSON.parse(gitData);
       var releaseSHA = (_gitBranches$find = gitBranches.find(branchInfo => branchInfo.name === "release")) === null || _gitBranches$find === void 0 || (_gitBranches$find = _gitBranches$find.commit) === null || _gitBranches$find === void 0 ? void 0 : _gitBranches$find.sha;
-      kolmafia.print(`Local Version: ${localSHA} (built from ${"main"}@${"12ec76546dcf43f77efcd0f3745d119a4ae5171e"})`);
+      kolmafia.print(`Local Version: ${localSHA} (built from ${"main"}@${"4a4b4a47e771729e901b2489ab674adb4f2b4d62"})`);
       if (releaseSHA === localSHA) {
         kolmafia.print("Garbo is up to date!", HIGHLIGHT);
       } else if (releaseSHA === undefined) {
@@ -23500,7 +23500,9 @@ function eatSafe(qty, item) {
     acquire(1, $item`Hunger™ Sauce`, 3 * MPA);
     kolmafia.use($item`Hunger™ Sauce`);
   }
-  if (kolmafia.mallPrice($item`fudge spork`) < 3 * MPA && !get$2("_fudgeSporkUsed")) {
+  // KoL won't serve a pasta of legend with a fudge spork, and Scratch's fork takes the
+  // utensil slot itself, so save the spork for the next other food
+  if (kolmafia.itemType(item) === "food" && !legendaryNoodleDishes.includes(item) && kolmafia.mallPrice($item`fudge spork`) < 3 * MPA && !get$2("_fudgeSporkUsed")) {
     kolmafia.eat($item`fudge spork`);
   }
   if (kolmafia.myClass() === $class`Pastamancer` && kolmafia.myThrall() !== $thrall`Spice Ghost` && !get$2("_legendarySpiceGhostFood") && $thrall`Spice Ghost`.level + (get$2("pumpkinSpiceWhorlUsed") ? 3 : 0) >= 11) {
