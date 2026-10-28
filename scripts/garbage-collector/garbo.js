@@ -18251,7 +18251,7 @@ function underwater(location) {
 }
 var ILLEGAL_PARENTS = ["Clan Basement", "Psychoses", "PirateRealm", "A Monorail Station", "Memories"];
 var ILLEGAL_ZONES = ["The Drip", "Suburbs", "The Mer-Kin Deepcity"];
-var canAdventureOrUnlockSkipList = [].concat(_toConsumableArray($locations`The Skate Park, The Bubblin' Caldera, Barrrney's Barrr, The F'c'le, The Poop Deck, Belowdecks, The Secret Government Laboratory, The Dire Warren, Inside the Palindome, The Haiku Dungeon, An Incredibly Strange Place (Bad Trip), An Incredibly Strange Place (Mediocre Trip), An Incredibly Strange Place (Great Trip), El Vibrato Island, The Daily Dungeon, Trick-or-Treating, Seaside Megalopolis, The Orcish Frat House, Through the Spacegate, Mt. Molehill`), _toConsumableArray(kolmafia.Location.all().filter(_ref => {
+var canAdventureOrUnlockSkipList = [].concat(_toConsumableArray($locations`The Caliginous Abyss, The Skate Park, The Bubblin' Caldera, Barrrney's Barrr, The F'c'le, The Poop Deck, Belowdecks, The Secret Government Laboratory, The Dire Warren, Inside the Palindome, The Haiku Dungeon, An Incredibly Strange Place (Bad Trip), An Incredibly Strange Place (Mediocre Trip), An Incredibly Strange Place (Great Trip), El Vibrato Island, The Daily Dungeon, Trick-or-Treating, Seaside Megalopolis, The Orcish Frat House, Through the Spacegate, Mt. Molehill`), _toConsumableArray(kolmafia.Location.all().filter(_ref => {
   var parent = _ref.parent,
     zone = _ref.zone;
   return ILLEGAL_PARENTS.includes(parent) || ILLEGAL_ZONES.includes(zone);
@@ -19772,7 +19772,7 @@ function checkGithubVersion() {
       // Query GitHub for latest release commit
       var gitBranches = JSON.parse(gitData);
       var releaseSHA = (_gitBranches$find = gitBranches.find(branchInfo => branchInfo.name === "release")) === null || _gitBranches$find === void 0 || (_gitBranches$find = _gitBranches$find.commit) === null || _gitBranches$find === void 0 ? void 0 : _gitBranches$find.sha;
-      kolmafia.print(`Local Version: ${localSHA} (built from ${"main"}@${"4a4b4a47e771729e901b2489ab674adb4f2b4d62"})`);
+      kolmafia.print(`Local Version: ${localSHA} (built from ${"main"}@${"55e37ac5ca7c6a4686fcdfd8f9c54f68f6a72b9b"})`);
       if (releaseSHA === localSHA) {
         kolmafia.print("Garbo is up to date!", HIGHLIGHT);
       } else if (releaseSHA === undefined) {
@@ -21471,15 +21471,20 @@ function effectExtenderValue(duration, maximumNumberOfEffects) {
 }
 
 Mood.setDefaultOptions({
-  songSlots: [$effects`Polka of Plenty`, $effects`Fat Leon's Phat Loot Lyric, Ur-Kel's Aria of Annoyance`, $effects`Chorale of Companionship`, $effects`The Ballad of Richie Thingfinder`],
-  useNativeRestores: true
+  songSlots: [$effects`Polka of Plenty`, $effects`Fat Leon's Phat Loot Lyric, Ur-Kel's Aria of Annoyance`, $effects`Chorale of Companionship`, $effects`The Ballad of Richie Thingfinder`]
 });
 function meatMood() {
-  var urKels = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : false;
-  var meat = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : FarmingStrategy.baseMeat();
+  var _ref = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {},
+    _ref$urKels = _ref.urKels,
+    urKels = _ref$urKels === void 0 ? false : _ref$urKels,
+    _ref$meat = _ref.meat,
+    meat = _ref$meat === void 0 ? FarmingStrategy.baseMeat() : _ref$meat,
+    _ref$useNativeRestore = _ref.useNativeRestores,
+    useNativeRestores = _ref$useNativeRestore === void 0 ? true : _ref$useNativeRestore;
   // Reserve the amount of MP we try to restore before each fight.
   var mood = new Mood({
-    reserveMp: safeRestoreMpTarget()
+    reserveMp: safeRestoreMpTarget(),
+    useNativeRestores
   });
   mood.potion($item`resolution: be wealthier`, 0.3 * meat);
   mood.potion($item`resolution: be happier`, 0.15 * 0.45 * 0.8 * 200);
@@ -25255,21 +25260,32 @@ function computeFamiliarMenuOptions() {
 function getRun() {
   return tryFindFreeRunOrBanish(freeRunConstraints()) ?? ltbRun();
 }
+function burnMp() {
+  meatMood({
+    useNativeRestores: false
+  }).execute(estimatedGarboTurns());
+  burnLibrams();
+}
+var MP_OUTFIT = {
+  modifier: ["MP", "+switch disembodied hand", "+switch left-hand man"]
+};
 var BuffExtensionTasks = [{
   name: "Platinum Yendorian Express Card",
   completed: () => get$2("expressCardUsed"),
   do: () => {
     withStash($items`Platinum Yendorian Express Card`, () => {
       if (have$P($item`Platinum Yendorian Express Card`)) {
-        burnLibrams();
+        burnMp();
         kolmafia.use($item`Platinum Yendorian Express Card`);
+        burnMp();
       }
     });
   },
   spendsTurn: false,
   limit: {
     skip: 1
-  }
+  },
+  outfit: MP_OUTFIT
 }, {
   name: "Bag o' Tricks",
   completed: () => get$2("_bagOTricksUsed"),
@@ -25289,13 +25305,15 @@ var BuffExtensionTasks = [{
   ready: () => have$P($item`License to Chill`),
   completed: () => get$2("_licenseToChillUsed"),
   do: () => {
-    burnLibrams();
+    burnMp();
     kolmafia.use($item`License to Chill`);
+    burnMp();
   },
   spendsTurn: false,
   limit: {
     skip: 1
-  }
+  },
+  outfit: MP_OUTFIT
 }, {
   name: "Such Great Heights",
   ready: () => globalOptions.ascend && sober() && !have$P($effect`Lucky!`) && questStep$1("questM16Temple") > 0 && kolmafia.mallPrice($item`stone wool`) < 3 * get$2("valueOfAdventure") + effectExtenderValue(3, 10) && !!getRun(),
@@ -25531,7 +25549,7 @@ function trackMarginalMpa(remainingTurns) {
   if (!barf) {
     sessions.set("barf", Session.current());
   } else {
-    var turns = barf.diff(current).totalTurns;
+    var turns = current.diff(barf).totalTurns;
     remainingTurns ?? (remainingTurns = estimatedGarboTurns());
     // track items if we have run at least 100 turns in barf mountain or we have less than 200 turns left in barf mountain
     var item = sessions.get("item-start");
@@ -28886,7 +28904,10 @@ function meatTargetSetup() {
   kolmafia.setLocation($location`Friar Ceremony Location`);
   potionSetup(false);
   kolmafia.maximize("MP", false);
-  meatMood(true, targetMeat()).execute(highMeatMonsterCount());
+  meatMood({
+    urKels: true,
+    meat: targetMeat()
+  }).execute(highMeatMonsterCount());
   safeRestore();
   freeFightMood().execute(50);
   runGarboQuests([BuffExtensionQuest, PostBuffExtensionQuest]);
@@ -33524,7 +33545,9 @@ var CockroachFinish = {
       avoid: $items`Roman Candelabra`,
       beforeDress: [() => kolmafia.maximize("MP", false),
       // Equip some MP stuff while we buff here since our myst was lowered while wearing eyepatch
-      () => meatMood(false, targetMeat()).execute(highMeatMonsterCount()), () => potionSetup(false)]
+      () => meatMood({
+        meat: targetMeat()
+      }).execute(highMeatMonsterCount()), () => potionSetup(false)]
     }, $location`Crab Island`),
     choices: {
       1368: 1
