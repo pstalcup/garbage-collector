@@ -1,0 +1,54 @@
+# Build any branch, tag or commit and publish it to the beta branch, so mafia can
+# install it alongside (instead of) release for testing.
+
+name: Publish beta
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Branch, tag or commit SHA to build"
+        required: true
+        default: main
+      repository:
+        description: "Repository to build from (owner/name)"
+        required: true
+        default: pstalcup/garbage-collector
+
+env:
+  # Default version of Node.js for jobs
+  node-version: "24"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: beta
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          repository: ${{ inputs.repository }}
+          ref: ${{ inputs.ref }}
+      - name: Use Node.js ${{ env.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.node-version }}
+          cache: yarn
+      - run: yarn install --immutable --immutable-cache
+      - run: yarn build
+      - id: source
+        run: echo "sha=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+      - uses: s0/git-publish-subdir-action@develop
+        env:
+          # self is this repo (the one running the workflow), not the one built from
+          REPO: self
+          BRANCH: beta
+          FOLDER: dist
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MESSAGE: "Build ${{ inputs.repository }}@${{ inputs.ref }} (${{ steps.source.outputs.sha }})"
