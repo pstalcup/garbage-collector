@@ -55,6 +55,7 @@ import { luckySourceTasks } from "../../resources/lucky";
 import { yachtzeeQuest } from "../yachtzee";
 import { embezzlerFightTask } from "../embezzler";
 import { EMPTY_CONTEXT, FarmingContext } from "../context";
+import { BossBatTasks } from "./bossBat";
 
 function dailyDungeon(additionalReady: () => boolean) {
   return {
@@ -375,6 +376,7 @@ const NonBarfTurnTasks: AlternateTask<FarmingContext>[] = [
     spendsTurn: true,
     choices: { 1091: 7 },
   },
+  ...BossBatTasks,
   ...luckyTasks("sober", () => !willDrunkAdventure()),
   ...luckyTasks("drunk", () => willDrunkAdventure()),
   {
